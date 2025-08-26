@@ -58,7 +58,7 @@ $result = $conn->query("SELECT * FROM usuarios WHERE tipo='funcionario'");
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Funcionários</title>
-    <link rel="stylesheet" href="css/styles.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo rand(0,10000)?>">
 </head>
 <body>
     <h1>Gerenciar Funcionários</h1>

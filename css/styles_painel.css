@@ -6,96 +6,216 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Body */
 body {
-    background-color: #333;
+    background: linear-gradient(-45deg, #fdfbfb, #ebedee, #ffeaea, #fff1f0);
+    background-size: 400% 400%;
+    color: #333;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    padding: 40px 20px;
+    padding: 20px;
+    animation: gradientBG 15s ease infinite, fadeInBody 1s ease forwards;
+    opacity: 0;
+}
+
+/* Animação do fundo */
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Fade-in do body */
+@keyframes fadeInBody {
+    to {
+        opacity: 1;
+    }
 }
 
 /* Título */
 h1 {
-    margin-bottom: 50px;
-    color: #ffffff;
-    font-size: 2.2rem;
+    margin-bottom: 40px;
+    font-size: 2rem;
+    color: #222;
     text-align: center;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Container dos cards */
+/* Container do painel */
 .dashboard-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 25px;
+    gap: 20px;
     width: 100%;
-    max-width: 900px;
+    max-width: 1000px;
+    opacity: 0;
+    animation: fadeInContainer 0.8s ease forwards;
+    animation-delay: 0.5s;
 }
 
-/* Cards do dashboard */
+/* Fade-in do container */
+@keyframes fadeInContainer {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Cartões do painel */
 .dashboard-card {
-    background: linear-gradient(135deg, #ba0d12, #601804);
-    border-radius: 20px;
-    padding: 30px 20px;
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    border-radius: 15px;
+    padding: 25px 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-decoration: none;
-    color: #fff;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    transition: transform 0.4s, box-shadow 0.4s, background 0.4s;
+    color: #333;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
     position: relative;
     overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s forwards;
 }
 
-/* Hover animation */
+/* Delay individual dos cartões */
+.dashboard-card:nth-child(1) {
+    animation-delay: 0.6s;
+}
+
+.dashboard-card:nth-child(2) {
+    animation-delay: 0.8s;
+}
+
+.dashboard-card:nth-child(3) {
+    animation-delay: 1s;
+}
+
+.dashboard-card:nth-child(4) {
+    animation-delay: 1.2s;
+}
+
+/* Animação de entrada dos cartões */
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Efeito radial no hover */
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 107, 107, 0.2), transparent 70%);
+    transform: scale(0);
+    transition: transform 0.5s ease;
+    z-index: 0;
+}
+
+.dashboard-card:hover::before {
+    transform: scale(1);
+}
+
+/* Hover com glow animado */
 .dashboard-card:hover {
-    transform: translateY(-10px) scale(1.05);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(135deg, #770000, #3a0000);
+    transform: translateY(-6px);
+    background: linear-gradient(145deg, #fff1f0, #ffeaea);
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.6),
+        0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* Ícones animados */
+/* Ícones */
 .dashboard-card i {
-    margin-bottom: 15px;
-    font-size: 2.5rem;
-    transition: transform 0.4s;
+    margin-bottom: 12px;
+    font-size: 2rem;
+    z-index: 1;
+    transition: transform 0.3s ease, color 0.3s ease, text-shadow 0.3s ease;
 }
 
+/* Pulse nos ícones */
 .dashboard-card:hover i {
-    transform: rotate(15deg) scale(1.2);
+    animation: pulse 0.6s ease-in-out infinite alternate;
+    text-shadow: 0 0 8px rgba(255, 107, 107, 0.8);
 }
 
-/* Texto do card */
+/* Texto */
 .dashboard-card span {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 600;
     text-align: center;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    transition: transform 0.3s ease, color 0.3s ease;
 }
 
-/* Card de logout */
-.dashboard-card.logout {
-    background: linear-gradient(135deg, #ff0000, #87000b);
+/* Efeito hover no texto */
+.dashboard-card:hover span {
+    transform: scale(1.08);
+    color: #ff6b6b;
+}
+
+/* Cartão de logout */
+.dashboard-card.logout i {
+    color: #f44336;
 }
 
 .dashboard-card.logout:hover {
-    background: linear-gradient(135deg, #87000b, #ff0000);
+    background-color: #ffe5e5;
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.6),
+        0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.dashboard-card.logout i {
-    color: #fff;
+/* Animação pulse */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
-/* Responsividade */
-@media (max-width: 500px) {
+/* Media Queries Mobile */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+    }
+
+    .dashboard-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
     .dashboard-card {
-        padding: 25px 15px;
+        padding: 20px 15px;
     }
 
     .dashboard-card i {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+    }
+
+    .dashboard-card span {
+        font-size: 0.95rem;
     }
 }

@@ -1,0 +1,193 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body */
+body {
+    background: #0d0d0d;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #fff;
+}
+
+/* Título */
+h1,
+h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #00fff7;
+    text-shadow: 0 0 10px #00fff7, 0 0 20px #00fff7;
+}
+
+/* Formulário de adicionar funcionário */
+form {
+    max-width: 600px;
+    margin: 0 auto 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"] {
+    padding: 10px 15px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    font-size: 1rem;
+    width: 100%;
+    background: #0d0d0d;
+    color: #fff;
+}
+
+form button {
+    background: linear-gradient(135deg, #00f0ff, #0fffd0);
+    color: #0d0d0d;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    text-shadow: 0 0 5px #00fff7;
+    box-shadow: 0 0 15px #00fff7;
+    transition: all 0.3s;
+}
+
+form button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #00fff7, 0 0 40px #0fffd0;
+}
+
+/* Container de funcionários */
+.produtos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 25px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Card de funcionário */
+.card-produto {
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: linear-gradient(135deg, #0fffd0, #00f0ff, #ff00ff, #ff0099);
+    background-size: 400% 400%;
+    animation: gradiente 12s ease infinite;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+    padding: 15px;
+}
+
+.card-produto:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.6);
+}
+
+/* Gradiente animado */
+@keyframes gradiente {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Informações do funcionário */
+.card-info {
+    padding: 10px;
+    color: #fff;
+    text-align: center;
+}
+
+.card-info h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 5px #0fffd0;
+}
+
+.card-info p {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+/* Ações */
+.card-acoes {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-acoes button,
+.card-acoes a {
+    text-decoration: none;
+    color: #0d0d0d;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    text-shadow: 0 0 3px #fff;
+    cursor: pointer;
+}
+
+.card-acoes button {
+    border: none;
+}
+
+/* Botão editar */
+.card-acoes button {
+    background: #00ff99;
+    box-shadow: 0 0 10px #00ff99;
+}
+
+.card-acoes button:hover {
+    background: #00ffcc;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px #00ffcc, 0 0 30px #00ff99;
+}
+
+/* Botão excluir */
+.card-acoes a.delete {
+    background: #ff0055;
+    box-shadow: 0 0 10px #ff0055;
+}
+
+.card-acoes a.delete:hover {
+    background: #ff3399;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px #ff3399, 0 0 30px #ff0055;
+}
+
+/* Link voltar */
+p a {
+    display: inline-block;
+    margin-top: 30px;
+    text-decoration: none;
+    color: #00fff7;
+    font-weight: 500;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+p a:hover {
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+}

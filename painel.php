@@ -26,7 +26,7 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
             <i class="fa fa-users fa-2x"></i>
             <span>Gerenciar Funcionários</span>
         </a>
-        <a href="#" class="dashboard-card">
+        <a href="pedidos.php" class="dashboard-card">
             <i class="fa fa-receipt fa-2x"></i>
             <span>Ver Pedidos</span>
         </a>

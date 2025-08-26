@@ -16,11 +16,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($user['tipo'] == "dono") {
             header("Location: painel.php");
+            exit;
         } else {
-            echo "Acesso negado!";
+            echo "<p style='color:red;text-align:center;'>Acesso negado!</p>";
         }
     } else {
-        echo "Usuário ou senha incorretos!";
+        echo "<p style='color:red;text-align:center;'>Usuário ou senha incorretos!</p>";
     }
 }
 ?>
@@ -34,13 +35,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-    <h2>Login do Dono</h2>
-    <form method="post">
-        <label>Email:</label>
-        <input type="text" name="email" required><br>
-        <label>Senha:</label>
-        <input type="password" name="senha" required><br>
-        <button type="submit"><i class="fa fa-right-to-bracket"></i> Entrar</button>
-    </form>
+    <div class="login-container">
+        <h2>Login do Dono</h2>
+        <form method="post">
+            <label>Email:</label>
+            <input type="text" name="email" required>
+            
+            <label>Senha:</label>
+            <input type="password" name="senha" required>
+            
+            <button type="submit">
+                <i class="fa fa-right-to-bracket"></i> Entrar
+            </button>
+        </form>
+    </div>
 </body>
 </html>
