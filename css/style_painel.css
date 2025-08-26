@@ -1,0 +1,101 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body */
+body {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* Título */
+h1 {
+    margin-bottom: 50px;
+    color: #333;
+    font-size: 2.2rem;
+    text-align: center;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Container dos cards */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 25px;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Cards do dashboard */
+.dashboard-card {
+    background: linear-gradient(135deg, #ba0d12, #601804);
+    border-radius: 20px;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s, box-shadow 0.4s, background 0.4s;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover animation */
+.dashboard-card:hover {
+    transform: translateY(-10px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, #770000, #3a0000);
+}
+
+/* Ícones animados */
+.dashboard-card i {
+    margin-bottom: 15px;
+    font-size: 2.5rem;
+    transition: transform 0.4s;
+}
+
+.dashboard-card:hover i {
+    transform: rotate(15deg) scale(1.2);
+}
+
+/* Texto do card */
+.dashboard-card span {
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-align: center;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Card de logout */
+.dashboard-card.logout {
+    background: linear-gradient(135deg, #ff0000, #87000b);
+}
+
+.dashboard-card.logout:hover {
+    background: linear-gradient(135deg, #87000b, #ff0000);
+}
+
+.dashboard-card.logout i {
+    color: #fff;
+}
+
+/* Responsividade */
+@media (max-width: 500px) {
+    .dashboard-card {
+        padding: 25px 15px;
+    }
+
+    .dashboard-card i {
+        font-size: 2rem;
+    }
+}

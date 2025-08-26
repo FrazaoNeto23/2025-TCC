@@ -11,7 +11,7 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
 <head>
     <meta charset="UTF-8">
     <title>Painel do Dono</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/style_painel.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
