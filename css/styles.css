@@ -9,21 +9,32 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f5f5f5;
     color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
     padding: 20px;
 }
 
+/* TÍTULOS */
 h1,
 h2 {
     margin-bottom: 20px;
+    text-align: center;
 }
 
+/* FORMULÁRIOS CENTRALIZADOS */
 form {
     background: #fff;
-    padding: 20px;
+    padding: 30px;
     border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
     margin-bottom: 30px;
-    max-width: 600px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
 }
 
 form input,
@@ -45,6 +56,7 @@ form button {
     cursor: pointer;
     font-size: 16px;
     transition: background 0.3s;
+    margin-top: 10px;
 }
 
 form button i {
@@ -60,6 +72,7 @@ form button:hover {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
+    justify-content: center; /* Centraliza o grid horizontalmente */
     margin-top: 30px;
 }
 
@@ -77,6 +90,7 @@ form button:hover {
     align-items: center;
     transition: background 0.3s, transform 0.2s;
     text-decoration: none;
+    width: 200px; /* Mantém o tamanho fixo do card */
 }
 
 .dashboard-card i {
@@ -101,16 +115,18 @@ form button:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
+    justify-items: center;
 }
 
 .card-produto {
     background: #fff;
     border-radius: 10px;
     padding: 15px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    width: 250px;
 }
 
 .card-img {
@@ -207,10 +223,15 @@ p a:hover {
 /* RESPONSIVO */
 @media(max-width:600px) {
     .dashboard-container {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* cards empilham no mobile */
+        justify-items: center;
     }
 
     .produtos-container {
         grid-template-columns: 1fr;
+    }
+
+    body {
+        padding: 10px;
     }
 }
