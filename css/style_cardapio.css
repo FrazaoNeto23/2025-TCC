@@ -1,0 +1,266 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body */
+body {
+    background: #0d0d0d;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #fff;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    font-size: 2.2rem;
+    margin-bottom: 30px;
+    color: #00fff7;
+    text-shadow: 0 0 10px #00fff7, 0 0 20px #00fff7;
+}
+
+/* Formulário de adicionar produto */
+form {
+    max-width: 600px;
+    margin: 0 auto 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+form input[type="text"],
+form input[type="number"],
+form textarea,
+form input[type="file"] {
+    padding: 10px 15px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    font-size: 1rem;
+    width: 100%;
+    background: #0d0d0d;
+    color: #fff;
+}
+
+form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+form button {
+    background: linear-gradient(135deg, #00f0ff, #0fffd0);
+    color: #0d0d0d;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    text-shadow: 0 0 5px #00fff7;
+    box-shadow: 0 0 15px #00fff7;
+    transition: all 0.3s;
+}
+
+form button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #00fff7, 0 0 40px #0fffd0;
+}
+
+/* Container de produtos */
+.produtos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 25px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Card de produto */
+.card-produto {
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    background: linear-gradient(135deg, #0fffd0, #00f0ff, #ff00ff, #ff0099);
+    background-size: 400% 400%;
+    animation: gradiente 12s ease infinite;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card-produto:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.6);
+}
+
+/* Gradiente animado */
+@keyframes gradiente {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Imagem do card */
+.card-img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-img-placeholder {
+    width: 100%;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Informações do produto */
+.card-info {
+    padding: 15px;
+    flex: 1;
+    color: #fff;
+}
+
+.card-info h3,
+.card-info .preco {
+    transition: all 0.3s;
+}
+
+.card-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 5px #0fffd0;
+}
+
+.card-info .preco {
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+.card-info .descricao {
+    font-size: 0.95rem;
+    transition: transform 0.3s;
+}
+
+/* Animação de brilho */
+@keyframes brilho {
+    0% {
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+
+    50% {
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    }
+
+    100% {
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+}
+
+.card-produto:hover .card-info h3,
+.card-produto:hover .card-info .preco {
+    animation: brilho 1s ease-in-out infinite alternate;
+    transform: translateY(-2px);
+}
+
+.card-produto:hover .card-info .descricao {
+    transform: translateY(-1px);
+}
+
+/* Ações do card */
+.card-acoes {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-acoes a {
+    text-decoration: none;
+    color: #0d0d0d;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s;
+    text-shadow: 0 0 3px #fff;
+}
+
+.card-acoes a.editar {
+    background: #00ff99;
+    box-shadow: 0 0 10px #00ff99;
+}
+
+.card-acoes a.editar:hover {
+    background: #00ffcc;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px #00ffcc, 0 0 30px #00ff99;
+}
+
+.card-acoes a.delete {
+    background: #ff0055;
+    box-shadow: 0 0 10px #ff0055;
+}
+
+.card-acoes a.delete:hover {
+    background: #ff3399;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px #ff3399, 0 0 30px #ff0055;
+}
+
+/* Ícones pulsando */
+.card-acoes a i,
+form button i {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+/* Link voltar */
+p a {
+    display: inline-block;
+    margin-top: 30px;
+    text-decoration: none;
+    color: #00fff7;
+    font-weight: 500;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+p a:hover {
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+}
