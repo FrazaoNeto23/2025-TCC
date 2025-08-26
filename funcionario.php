@@ -17,7 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sss", $nome, $email, $senha);
     $stmt->execute();
-    header("Location: funcionarios.php");
+    header("Location: funcionario.php");
     exit;
 }
 
@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
         $stmt->bind_param("ssi", $nome, $email, $id);
     }
     $stmt->execute();
-    header("Location: funcionarios.php");
+    header("Location: funcionario.php");
     exit;
 }
 
@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $conn->query("DELETE FROM usuarios WHERE id=$id AND tipo='funcionario'");
-    header("Location: funcionarios.php");
+    header("Location: funcionario.php");
     exit;
 }
 
@@ -84,7 +84,7 @@ $result = $conn->query("SELECT * FROM usuarios WHERE tipo='funcionario'");
                 <div class="card-acoes">
                     <!-- Botão editar abre formulário embutido -->
                     <button onclick="document.getElementById('edit-<?= $row['id'] ?>').style.display='block'">Editar</button>
-                    <a href="funcionarios.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Excluir este funcionário?')">Excluir</a>
+                    <a href="funcionario.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Excluir este funcionário?')">Excluir</a>
                 </div>
                 <!-- Formulário de edição escondido -->
                 <form method="POST" id="edit-<?= $row['id'] ?>" style="display:none; margin-top:10px;">
