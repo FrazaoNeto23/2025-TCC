@@ -83,6 +83,7 @@ form button:hover {
 
 /* Card de produto */
 .card-produto {
+    width: 25%;
     border-radius: 15px;
     overflow: hidden;
     display: flex;
