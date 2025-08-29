@@ -2,26 +2,54 @@
 session_start();
 include "config.php";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$msg = "";
+
+// --- Login ---
+if(isset($_POST['acao']) && $_POST['acao'] == "login"){
     $email = $_POST['email'];
-    $senha = md5($_POST['senha']); 
+    $senha = $_POST['senha'];
 
-    $sql = "SELECT * FROM usuarios WHERE email='$email' AND senha='$senha'";
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
 
-    if ($result->num_rows == 1) {
-        $user = $result->fetch_assoc();
-        $_SESSION['usuario'] = $user['nome'];
-        $_SESSION['tipo'] = $user['tipo'];
+    if($res && password_verify($senha, $res['senha'])){
+        $_SESSION['usuario'] = $res['nome'];
+        $_SESSION['id_usuario'] = $res['id'];
+        $_SESSION['tipo'] = $res['tipo'];
 
-        if ($user['tipo'] == "dono") {
-            header("Location: painel.php");
-            exit;
+        if($res['tipo'] == "dono"){
+            header("Location: painel_dono.php");
         } else {
-            echo "<p style='color:red;text-align:center;'>Acesso negado!</p>";
+            header("Location: painel_cliente.php");
         }
+        exit;
     } else {
-        echo "<p style='color:red;text-align:center;'>Usuário ou senha incorretos!</p>";
+        $msg = "Email ou senha incorretos!";
+    }
+}
+
+// --- Cadastro ---
+if(isset($_POST['acao']) && $_POST['acao'] == "cadastro"){
+    $nome = $_POST['nome'];
+    $email = $_POST['email'];
+    $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
+    $tipo = $_POST['tipo']; // dono ou cliente
+
+    // verifica se email já existe
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if($res->num_rows > 0){
+        $msg = "Email já cadastrado!";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO usuarios (nome,email,senha,tipo) VALUES (?,?,?,?)");
+        $stmt->bind_param("ssss", $nome,$email,$senha,$tipo);
+        $stmt->execute();
+        $msg = "Cadastro realizado com sucesso! Faça login.";
     }
 }
 ?>
@@ -29,25 +57,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Login Dono</title>
-    <link rel="stylesheet" href="css/styles.css?e=<?php echo rand(0,10000)?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<meta charset="UTF-8">
+<title>Acesso</title>
+<link rel="stylesheet" href="css/acesso.css?e=<?php echo rand(0,10000)?>">
 </head>
 <body>
-    <div class="login-container">
-        <h2>Login do Dono</h2>
-        <form method="post">
-            <label>Email:</label>
-            <input type="text" name="email" required>
-            
-            <label>Senha:</label>
-            <input type="password" name="senha" required>
-            
-            <button type="submit">
-                <i class="fa fa-right-to-bracket"></i> Entrar
-            </button>
+<div class="container">
+    <h1>Sistema de Acesso</h1>
+    <?php if($msg) echo "<p class='msg'>$msg</p>"; ?>
+
+    <div class="forms">
+
+        <!-- LOGIN -->
+        <form method="POST" class="form-login">
+            <h2>Login</h2>
+            <input type="hidden" name="acao" value="login">
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
         </form>
+
+        <!-- CADASTRO -->
+        <form method="POST" class="form-cadastro">
+            <h2>Cadastro</h2>
+            <input type="hidden" name="acao" value="cadastro">
+            <input type="text" name="nome" placeholder="Nome" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <select name="tipo" required>
+                <option value="">Selecione o tipo</option>
+                <option value="cliente">Cliente</option>
+                <option value="dono">Dono</option>
+            </select>
+            <button type="submit">Cadastrar</button>
+        </form>
+
     </div>
+</div>
 </body>
 </html>

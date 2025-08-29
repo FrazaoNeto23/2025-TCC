@@ -1,0 +1,93 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Corpo */
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Container principal */
+.container {
+    background: #1e1e1e;
+    padding: 30px;
+    border-radius: 10px;
+    width: 800px;
+    text-align: center;
+    box-shadow: 0 0 20px #0ff;
+}
+
+/* Título */
+h1 {
+    color: #0ff;
+    margin-bottom: 20px;
+}
+
+/* Mensagens */
+.msg {
+    background: #ff4c4c;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+/* Forms lado a lado */
+.forms {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+/* Formulários */
+form {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+form h2 {
+    color: #0ff;
+    margin-bottom: 10px;
+}
+
+/* Inputs e selects */
+input,
+select {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    background: #121212;
+    color: #fff;
+    font-size: 14px;
+}
+
+/* Botões */
+button {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #0ff;
+    color: #121212;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #00d4d4;
+}

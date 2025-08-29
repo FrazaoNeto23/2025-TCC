@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
 }
 
 // Listar pedidos
-$result = $conn->query("SELECT * FROM pedidos ORDER BY data_pedido DESC");
+$result = $conn->query("SELECT * FROM pedidos ORDER BY data DESC");
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

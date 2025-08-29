@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adicionar'])) {
         if (move_uploaded_file($_FILES['imagem']['tmp_name'], $targetFile)) { $imagem = $filename; }
     }
 
-    $sql = "INSERT INTO cardapio (nome, preco, descricao, imagem) VALUES ('$nome', '$preco', '$descricao', '$imagem')";
+    $sql = "INSERT INTO produtos (nome, preco, descricao, imagem) VALUES ('$nome', '$preco', '$descricao', '$imagem')";
     $conn->query($sql);
     header("Location: cardapio.php");
     exit;
@@ -40,7 +40,7 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-$produtos = $conn->query("SELECT * FROM cardapio");
+$produtos = $conn->query("SELECT * FROM produtos");
 ?>
 
 <!DOCTYPE html>
@@ -48,7 +48,7 @@ $produtos = $conn->query("SELECT * FROM cardapio");
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Cardápio</title>
-    <link rel="stylesheet" href="css/style_cardapio.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="css/cardapio.css?e=<?php echo rand(0,10000)?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>

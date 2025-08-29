@@ -1,0 +1,188 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Corpo */
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    color: #fff;
+    padding: 20px;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    color: #0ff;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+/* Formulário de adicionar produto */
+form {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 800px;
+    margin: 0 auto 30px auto;
+    box-shadow: 0 0 15px #0ff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+form input[type="text"],
+form input[type="number"],
+form textarea,
+form input[type="file"] {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    background: #121212;
+    color: #fff;
+    font-size: 14px;
+}
+
+form textarea {
+    resize: vertical;
+}
+
+form button {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #0ff;
+    color: #121212;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+form button:hover {
+    background: #00d4d4;
+}
+
+/* Container de produtos */
+.produtos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    width: 25%;
+    margin: 0 auto;
+}
+
+/* Card de produto */
+.card-produto {
+    background: #1e1e1e;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 15px #0ff;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card-produto:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 25px #0ff;
+}
+
+/* Imagem do produto */
+.card-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-img-placeholder {
+    width: 100%;
+    height: 200px;
+    background: #121212;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #555;
+    font-style: italic;
+}
+
+/* Informações do produto */
+.card-info {
+    padding: 15px;
+    flex: 1;
+}
+
+.card-info h3 {
+    color: #0ff;
+    margin-bottom: 5px;
+}
+
+.card-info .preco {
+    color: #00d4d4;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.card-info .descricao {
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* Ações do card */
+.card-acoes {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #121212;
+    border-top: 1px solid #0ff;
+}
+
+.card-acoes a {
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Editar */
+.card-acoes a.editar {
+    background: #0ff;
+    color: #121212;
+}
+
+.card-acoes a.editar:hover {
+    background: #00d4d4;
+}
+
+/* Excluir */
+.card-acoes a.delete {
+    background: #ff4c4c;
+    color: #fff;
+}
+
+.card-acoes a.delete:hover {
+    background: #e53939;
+}
+
+/* Link voltar */
+p a {
+    color: #0ff;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+
+p a:hover {
+    color: #00d4d4;
+    text-shadow: 0 0 5px #0ff;
+}
