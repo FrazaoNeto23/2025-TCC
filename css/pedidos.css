@@ -1,0 +1,149 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Corpo */
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    color: #fff;
+    padding: 20px;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    color: #0ff;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+/* Botão limpar pedidos antigos */
+.btn-limpar {
+    background: #ff4c4c;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-limpar:hover {
+    background: #e53939;
+}
+
+/* Tabela */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px #0ff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #0ff;
+    font-size: 14px;
+}
+
+th {
+    color: #0ff;
+    background: #1e1e1e;
+}
+
+tr:hover {
+    background: rgba(0, 255, 255, 0.1);
+}
+
+/* Status com cores diferentes */
+.status-preparo {
+    color: #0ff; /* Azul */
+    font-weight: bold;
+    text-shadow: 0 0 5px #0ff;
+}
+
+.status-producao {
+    color: red; /* Ciano */
+    font-weight: bold;
+    /* text-shadow: 0 0 5px #0ff; */
+}
+
+.status-entregando {
+    color: #00ff6a; /* Verde neon */
+    font-weight: bold;
+    text-shadow: 0 0 5px #00ff6a;
+}
+
+/* Botões de ação */
+td a {
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    margin: 0 2px;
+    font-size: 12px;
+    transition: 0.3s;
+    display: inline-block;
+}
+
+/* Botões de atualização de status */
+td a[href*="Em preparo"] {
+    background: #0ff;
+    color: #121212;
+}
+
+td a[href*="Em preparo"]:hover {
+    background: #00d4d4;
+}
+
+td a[href*="Em produção"] {
+    background: red;
+    color: #121212;
+}
+
+td a[href*="Em produção"]:hover {
+    background: red;
+}
+
+td a[href*="Entregando"] {
+    background: #00ff6a;
+    color: #121212;
+}
+
+td a[href*="Entregando"]:hover {
+    background: #00cc55;
+}
+
+/* Link voltar */
+p a {
+    color: #0ff;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+p a:hover {
+    color: #00d4d4;
+    text-shadow: 0 0 5px #0ff;
+}
+
+/* Responsividade */
+@media(max-width: 900px){
+    table, th, td {
+        font-size: 12px;
+    }
+
+    td a, .btn-limpar {
+        padding: 3px 5px;
+        font-size: 10px;
+    }
+}

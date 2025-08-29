@@ -3,7 +3,7 @@ session_start();
 include "config.php";
 
 if(!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente"){
-    header("Location: acesso.php");
+    header("Location: painel_cliente.php");
     exit;
 }
 
