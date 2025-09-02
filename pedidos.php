@@ -9,57 +9,32 @@ if (!isset($_SESSION['usuario'])) {
 }
 
 // Atualizar status via GET
-if (isset($_GET['update_status'], $_GET['id'])) {
-    $novo_status = urldecode($_GET['update_status']);
+if(isset($_GET['update_status'], $_GET['id'])){
+    $novo_status = $_GET['update_status'];
     $id_pedido = intval($_GET['id']);
     $stmt = $conn->prepare("UPDATE pedidos SET status=? WHERE id=?");
     $stmt->bind_param("si", $novo_status, $id_pedido);
     $stmt->execute();
-
-    $redirect = "pedidos.php";
-    if (isset($_GET['status'])) {
-        $redirect .= "?status=" . urlencode($_GET['status']);
-    }
-    header("Location: " . $redirect);
+    header("Location: pedidos.php");
     exit;
 }
 
 // Limpar pedidos com mais de 15 minutos
-if (isset($_POST['limpar_antigos'])) {
+if(isset($_POST['limpar_antigos'])){
     $stmt = $conn->prepare("DELETE FROM pedidos WHERE data < (NOW() - INTERVAL 15 MINUTE)");
     $stmt->execute();
     header("Location: pedidos.php");
     exit;
 }
 
-// Filtro por status
-$filtro_status = isset($_GET['status']) ? urldecode($_GET['status']) : '';
-$sql = "
+// Busca pedidos
+$pedidos = $conn->query("
     SELECT pedidos.id, pedidos.id_cliente, pedidos.id_produto, pedidos.quantidade, pedidos.total, pedidos.data, pedidos.status,
            produtos.nome AS produto_nome
     FROM pedidos
     JOIN produtos ON pedidos.id_produto = produtos.id
-";
-if ($filtro_status != '') {
-    $stmt = $conn->prepare($sql . " WHERE pedidos.status = ? ORDER BY pedidos.data DESC");
-    $stmt->bind_param("s", $filtro_status);
-    $stmt->execute();
-    $pedidos = $stmt->get_result();
-} else {
-    $pedidos = $conn->query($sql . " ORDER BY pedidos.data DESC");
-}
-
-// Contadores por status
-$status_counts = [
-    'Em preparo' => 0,
-    'Em produção' => 0,
-    'Entregando' => 0
-];
-
-$result_counts = $conn->query("SELECT status, COUNT(*) as total FROM pedidos GROUP BY status");
-while ($row = $result_counts->fetch_assoc()) {
-    $status_counts[$row['status']] = $row['total'];
-}
+    ORDER BY pedidos.data DESC
+");
 ?>
 
 <!DOCTYPE html>
@@ -74,25 +49,8 @@ while ($row = $result_counts->fetch_assoc()) {
 
 <!-- Botão para limpar pedidos antigos -->
 <form method="post" style="text-align:center; margin-bottom:20px;">
-    <button type="submit" name="limpar_antigos" class="btn-limpar"
-        onclick="return confirm('Tem certeza que deseja limpar os pedidos com mais de 15 minutos?')">
-        Limpar pedidos com mais de 15 minutos
-    </button>
+    <button type="submit" name="limpar_antigos" class="btn-limpar" onclick="return confirm('Tem certeza que deseja limpar os pedidos com mais de 15 minutos?')">Limpar pedidos com mais de 15 minutos</button>
 </form>
-
-<!-- Filtros de status com contadores coloridos -->
-<div class="filtros">
-    <a href="pedidos.php" class="filtro-todos">Todos (<?= array_sum($status_counts) ?>)</a>
-    <a href="pedidos.php?status=<?= urlencode('Em preparo') ?>" class="filtro-preparo">
-        Em preparo (<?= $status_counts['Em preparo'] ?>)
-    </a>
-    <a href="pedidos.php?status=<?= urlencode('Em produção') ?>" class="filtro-producao">
-        Em produção (<?= $status_counts['Em produção'] ?>)
-    </a>
-    <a href="pedidos.php?status=<?= urlencode('Entregando') ?>" class="filtro-entregando">
-        Entregando (<?= $status_counts['Entregando'] ?>)
-    </a>
-</div>
 
 <table>
     <tr>
@@ -108,9 +66,9 @@ while ($row = $result_counts->fetch_assoc()) {
 
     <?php while ($pedido = $pedidos->fetch_assoc()): 
         $status_class = '';
-        if ($pedido['status'] == 'Em preparo') $status_class = 'status-preparo';
-        elseif ($pedido['status'] == 'Em produção') $status_class = 'status-producao';
-        elseif ($pedido['status'] == 'Entregando') $status_class = 'status-entregando';
+        if($pedido['status'] == 'Em preparo') $status_class = 'status-preparo';
+        elseif($pedido['status'] == 'Em produção') $status_class = 'status-producao';
+        elseif($pedido['status'] == 'Entregando') $status_class = 'status-entregando';
     ?>
     <tr class="<?= $status_class ?>">
         <td><?= $pedido['id'] ?></td>
@@ -119,22 +77,11 @@ while ($row = $result_counts->fetch_assoc()) {
         <td><?= $pedido['quantidade'] ?></td>
         <td>R$ <?= number_format($pedido['total'], 2, ',', '.') ?></td>
         <td><?= $pedido['data'] ?></td>
-        <td class="badge <?= $status_class ?>"><?= $pedido['status'] ?></td>
+        <td class="badge"><span class="badge-text"><?= $pedido['status'] ?></span></td>
         <td>
-            <a class="btn-preparo"
-               href="pedidos.php?update_status=<?= urlencode('Em preparo') ?>&id=<?= $pedido['id'] ?>&status=<?= urlencode($filtro_status) ?>">
-               Em preparo
-            </a>
-            |
-            <a class="btn-producao"
-               href="pedidos.php?update_status=<?= urlencode('Em produção') ?>&id=<?= $pedido['id'] ?>&status=<?= urlencode($filtro_status) ?>">
-               Em produção
-            </a>
-            |
-            <a class="btn-entregando"
-               href="pedidos.php?update_status=<?= urlencode('Entregando') ?>&id=<?= $pedido['id'] ?>&status=<?= urlencode($filtro_status) ?>">
-               Entregando
-            </a>
+            <a href="pedidos.php?update_status=Em preparo&id=<?= $pedido['id'] ?>" class="btn-preparo">Em preparo</a>
+            <a href="pedidos.php?update_status=Em produção&id=<?= $pedido['id'] ?>" class="btn-producao">Em produção</a>
+            <a href="pedidos.php?update_status=Entregando&id=<?= $pedido['id'] ?>" class="btn-entregando">Entregando</a>
         </td>
     </tr>
     <?php endwhile; ?>

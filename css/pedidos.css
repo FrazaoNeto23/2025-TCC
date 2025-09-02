@@ -37,51 +37,6 @@ h1 {
     background: #e53939;
 }
 
-/* Filtros de status */
-.filtros {
-    text-align: center;
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.filtros a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: bold;
-    padding: 5px 12px;
-    border-radius: 12px;
-    transition: 0.3s;
-    font-size: 14px;
-}
-
-/* Cores individuais por status */
-.filtro-todos {
-    background: rgba(0, 255, 255, 0.3);
-    color: #0ff;
-}
-
-.filtro-preparo {
-    background: #ff4c4c;
-    color: #fff;
-}
-
-.filtro-producao {
-    background: #4da6ff;
-    color: #fff;
-}
-
-.filtro-entregando {
-    background: #00cc55;
-    color: #fff;
-}
-
-.filtros a:hover {
-    opacity: 0.8;
-}
-
 /* Tabela */
 table {
     width: 100%;
@@ -105,54 +60,47 @@ th {
     background: #1e1e1e;
 }
 
-tr:hover {
-    opacity: 0.9;
-}
-
-/* Destacar a linha inteira pelo status */
+/* Destaque por status na linha */
 tr.status-preparo {
-    background: rgba(255, 76, 76, 0.2);
+    background: rgba(255, 76, 76, 0.1);
 }
 
 tr.status-producao {
-    background: rgba(77, 166, 255, 0.2);
+    background: rgba(77, 166, 255, 0.1);
 }
 
 tr.status-entregando {
-    background: rgba(0, 204, 85, 0.2);
+    background: rgba(0, 204, 85, 0.1);
 }
 
-tr.status-preparo:hover {
-    background: rgba(255, 76, 76, 0.35);
+tr:hover {
+    background: rgba(0, 255, 255, 0.1);
 }
 
-tr.status-producao:hover {
-    background: rgba(77, 166, 255, 0.35);
+/* Status centralizado como badge */
+td.badge {
+    text-align: center;
 }
 
-tr.status-entregando:hover {
-    background: rgba(0, 204, 85, 0.35);
-}
-
-/* Status como badges */
-.badge {
-    color: #fff;
-    font-weight: bold;
-    top: 9000px;
-    padding: 7px 12px;
-    border-radius: 12px;
+td .badge-text {
     display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #fff;
+    min-width: 100px;
 }
 
-.status-preparo.badge {
+/* Cores dos badges */
+tr.status-preparo td .badge-text {
     background: #ff4c4c;
 }
 
-.status-producao.badge {
+tr.status-producao td .badge-text {
     background: #4da6ff;
 }
 
-.status-entregando.badge {
+tr.status-entregando td .badge-text {
     background: #00cc55;
 }
 
@@ -168,6 +116,7 @@ td a {
     font-weight: bold;
 }
 
+/* Botões coloridos */
 .btn-preparo {
     background: #ff4c4c;
     color: #fff;
@@ -220,8 +169,7 @@ p a:hover {
     }
 
     td a,
-    .btn-limpar,
-    .filtros a {
+    .btn-limpar {
         padding: 3px 5px;
         font-size: 10px;
     }
