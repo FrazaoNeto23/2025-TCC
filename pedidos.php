@@ -27,16 +27,20 @@ if(isset($_POST['limpar_antigos'])){
     exit;
 }
 
-// Busca pedidos
-$pedidos = $conn->query("
+// Filtro de status
+$filtro_status = isset($_GET['status']) ? $_GET['status'] : 'todos';
+$sql = "
     SELECT pedidos.id, pedidos.id_cliente, pedidos.id_produto, pedidos.quantidade, pedidos.total, pedidos.data, pedidos.status,
            produtos.nome AS produto_nome
     FROM pedidos
     JOIN produtos ON pedidos.id_produto = produtos.id
-    ORDER BY pedidos.data DESC
-");
+";
+if($filtro_status != 'todos'){
+    $sql .= " WHERE pedidos.status = '".$conn->real_escape_string($filtro_status)."' ";
+}
+$sql .= " ORDER BY pedidos.data DESC";
+$pedidos = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -47,8 +51,21 @@ $pedidos = $conn->query("
 <body>
 <h1>Lista de Pedidos</h1>
 
+<!-- Filtro por status -->
+<div class="filtro">
+    <form method="get">
+        <label for="status">Filtrar por status:</label>
+        <select name="status" id="status" onchange="this.form.submit()">
+            <option value="todos" <?= $filtro_status == 'todos' ? 'selected' : '' ?>>Todos</option>
+            <option value="Em preparo" <?= $filtro_status == 'Em preparo' ? 'selected' : '' ?>>⚙️ Em preparo</option>
+            <option value="Em produção" <?= $filtro_status == 'Em produção' ? 'selected' : '' ?>>🛠 Em produção</option>
+            <option value="Entregando" <?= $filtro_status == 'Entregando' ? 'selected' : '' ?>>🚚 Entregando</option>
+        </select>
+    </form>
+</div>
+
 <!-- Botão para limpar pedidos antigos -->
-<form method="post" style="text-align:center; margin-bottom:20px;">
+<form method="post" style="text-align:center; margin:15px 0;">
     <button type="submit" name="limpar_antigos" class="btn-limpar" onclick="return confirm('Tem certeza que deseja limpar os pedidos com mais de 15 minutos?')">Limpar pedidos com mais de 15 minutos</button>
 </form>
 
@@ -66,9 +83,19 @@ $pedidos = $conn->query("
 
     <?php while ($pedido = $pedidos->fetch_assoc()): 
         $status_class = '';
-        if($pedido['status'] == 'Em preparo') $status_class = 'status-preparo';
-        elseif($pedido['status'] == 'Em produção') $status_class = 'status-producao';
-        elseif($pedido['status'] == 'Entregando') $status_class = 'status-entregando';
+        $status_icon = '';
+        if($pedido['status'] == 'Em preparo'){ 
+            $status_class = 'status-preparo'; 
+            $status_icon = '⚙️'; 
+        }
+        elseif($pedido['status'] == 'Em produção'){ 
+            $status_class = 'status-producao'; 
+            $status_icon = '🛠'; 
+        }
+        elseif($pedido['status'] == 'Entregando'){ 
+            $status_class = 'status-entregando'; 
+            $status_icon = '🚚'; 
+        }
     ?>
     <tr>
         <td><?= $pedido['id'] ?></td>
@@ -77,7 +104,7 @@ $pedidos = $conn->query("
         <td><?= $pedido['quantidade'] ?></td>
         <td>R$ <?= number_format($pedido['total'], 2, ',', '.') ?></td>
         <td><?= $pedido['data'] ?></td>
-        <td class="<?= $status_class ?>"><?= $pedido['status'] ?></td>
+        <td><span class="<?= $status_class ?>"><?= $status_icon ?> <?= $pedido['status'] ?></span></td>
         <td>
             <a href="pedidos.php?update_status=Em preparo&id=<?= $pedido['id'] ?>">Em preparo</a> |
             <a href="pedidos.php?update_status=Em produção&id=<?= $pedido['id'] ?>">Em produção</a> |

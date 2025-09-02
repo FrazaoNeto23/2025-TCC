@@ -21,6 +21,34 @@ h1 {
     text-shadow: 0 0 10px #0ff;
 }
 
+/* 🔹 Filtro de status */
+.filtro {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.filtro label {
+    font-weight: bold;
+    margin-right: 8px;
+    color: #0ff;
+}
+
+.filtro select {
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #0ff;
+    background: #1e1e1e;
+    color: #0ff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.filtro select:hover {
+    background: #0ff;
+    color: #000;
+}
+
 /* Botão limpar pedidos antigos */
 .btn-limpar {
     background: #ff4c4c;
@@ -47,7 +75,8 @@ table {
     overflow: hidden;
 }
 
-th, td {
+th,
+td {
     padding: 10px;
     text-align: center;
     border-bottom: 1px solid #0ff;
@@ -63,62 +92,63 @@ tr:hover {
     background: rgba(0, 255, 255, 0.1);
 }
 
-/* Status com cores diferentes */
+/* Status coloridos sólidos */
 .status-preparo {
-    color: #0ff; /* Azul */
+    color: #ff4c4c;
+    /* Vermelho */
     font-weight: bold;
-    text-shadow: 0 0 5px #0ff;
 }
 
 .status-producao {
-    color: red; /* Ciano */
+    color: #4da6ff;
+    /* Azul claro */
     font-weight: bold;
-    /* text-shadow: 0 0 5px #0ff; */
 }
 
 .status-entregando {
-    color: #00ff6a; /* Verde neon */
+    color: #00cc55;
+    /* Verde */
     font-weight: bold;
-    text-shadow: 0 0 5px #00ff6a;
 }
 
 /* Botões de ação */
 td a {
     text-decoration: none;
-    padding: 5px 8px;
+    padding: 6px 10px;
     border-radius: 5px;
     margin: 0 2px;
     font-size: 12px;
     transition: 0.3s;
     display: inline-block;
+    font-weight: bold;
 }
 
-/* Botões de atualização de status */
+/* 🔹 Botões coloridos */
 td a[href*="Em preparo"] {
-    background: #0ff;
-    color: #121212;
+    background: #ff4c4c;
+    color: #fff;
 }
 
 td a[href*="Em preparo"]:hover {
-    background: #00d4d4;
+    background: #e53939;
 }
 
 td a[href*="Em produção"] {
-    background: red;
-    color: #121212;
+    background: #4da6ff;
+    color: #fff;
 }
 
 td a[href*="Em produção"]:hover {
-    background: red;
+    background: #3385ff;
 }
 
 td a[href*="Entregando"] {
-    background: #00ff6a;
-    color: #121212;
+    background: #00cc55;
+    color: #fff;
 }
 
 td a[href*="Entregando"]:hover {
-    background: #00cc55;
+    background: #009944;
 }
 
 /* Link voltar */
@@ -137,12 +167,17 @@ p a:hover {
 }
 
 /* Responsividade */
-@media(max-width: 900px){
-    table, th, td {
+@media(max-width: 900px) {
+
+    table,
+    th,
+    td {
         font-size: 12px;
     }
 
-    td a, .btn-limpar {
+    td a,
+    .btn-limpar,
+    .filtro select {
         padding: 3px 5px;
         font-size: 10px;
     }

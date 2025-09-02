@@ -32,10 +32,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adicionar'])) {
 // Excluir produto
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    $res = $conn->query("SELECT imagem FROM cardapio WHERE id=$id");
+    $res = $conn->query("SELECT imagem FROM produtos WHERE id=$id");
     $row = $res->fetch_assoc();
     if ($row['imagem'] && file_exists($targetDir . $row['imagem'])) { unlink($targetDir . $row['imagem']); }
-    $conn->query("DELETE FROM cardapio WHERE id=$id");
+    $conn->query("DELETE FROM produtos WHERE id=$id");
     header("Location: cardapio.php");
     exit;
 }
@@ -83,6 +83,6 @@ $produtos = $conn->query("SELECT * FROM produtos");
         <?php endwhile; ?>
     </div>
 
-    <p><a href="painel.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
+    <p><a href="painel_dono.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
 </body>
 </html>
