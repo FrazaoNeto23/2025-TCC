@@ -10,7 +10,7 @@ if (!isset($_SESSION['usuario'])) {
 
 // Atualizar status via GET
 if (isset($_GET['update_status'], $_GET['id'])) {
-    $novo_status = urldecode($_GET['update_status']); // garante que decodifica corretamente
+    $novo_status = urldecode($_GET['update_status']);
     $id_pedido = intval($_GET['id']);
     $stmt = $conn->prepare("UPDATE pedidos SET status=? WHERE id=?");
     $stmt->bind_param("si", $novo_status, $id_pedido);
@@ -80,12 +80,18 @@ while ($row = $result_counts->fetch_assoc()) {
     </button>
 </form>
 
-<!-- Filtros de status com contadores -->
+<!-- Filtros de status com contadores coloridos -->
 <div class="filtros">
-    <a href="pedidos.php">Todos (<?= array_sum($status_counts) ?>)</a> |
-    <a href="pedidos.php?status=<?= urlencode('Em preparo') ?>">Em preparo (<?= $status_counts['Em preparo'] ?>)</a> |
-    <a href="pedidos.php?status=<?= urlencode('Em produção') ?>">Em produção (<?= $status_counts['Em produção'] ?>)</a> |
-    <a href="pedidos.php?status=<?= urlencode('Entregando') ?>">Entregando (<?= $status_counts['Entregando'] ?>)</a>
+    <a href="pedidos.php" class="filtro-todos">Todos (<?= array_sum($status_counts) ?>)</a>
+    <a href="pedidos.php?status=<?= urlencode('Em preparo') ?>" class="filtro-preparo">
+        Em preparo (<?= $status_counts['Em preparo'] ?>)
+    </a>
+    <a href="pedidos.php?status=<?= urlencode('Em produção') ?>" class="filtro-producao">
+        Em produção (<?= $status_counts['Em produção'] ?>)
+    </a>
+    <a href="pedidos.php?status=<?= urlencode('Entregando') ?>" class="filtro-entregando">
+        Entregando (<?= $status_counts['Entregando'] ?>)
+    </a>
 </div>
 
 <table>
@@ -106,14 +112,14 @@ while ($row = $result_counts->fetch_assoc()) {
         elseif ($pedido['status'] == 'Em produção') $status_class = 'status-producao';
         elseif ($pedido['status'] == 'Entregando') $status_class = 'status-entregando';
     ?>
-    <tr>
+    <tr class="<?= $status_class ?>">
         <td><?= $pedido['id'] ?></td>
         <td><?= $pedido['id_cliente'] ?></td>
         <td><?= $pedido['produto_nome'] ?></td>
         <td><?= $pedido['quantidade'] ?></td>
         <td>R$ <?= number_format($pedido['total'], 2, ',', '.') ?></td>
         <td><?= $pedido['data'] ?></td>
-        <td class="<?= $status_class ?>"><?= $pedido['status'] ?></td>
+        <td class="badge <?= $status_class ?>"><?= $pedido['status'] ?></td>
         <td>
             <a class="btn-preparo"
                href="pedidos.php?update_status=<?= urlencode('Em preparo') ?>&id=<?= $pedido['id'] ?>&status=<?= urlencode($filtro_status) ?>">

@@ -21,34 +21,6 @@ h1 {
     text-shadow: 0 0 10px #0ff;
 }
 
-/* Filtro de status */
-.filtro {
-    text-align: center;
-    margin-bottom: 15px;
-}
-
-.filtro label {
-    font-weight: bold;
-    margin-right: 8px;
-    color: #0ff;
-}
-
-.filtro select {
-    padding: 6px 10px;
-    border-radius: 5px;
-    border: 1px solid #0ff;
-    background: #1e1e1e;
-    color: #0ff;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.filtro select:hover {
-    background: #0ff;
-    color: #000;
-}
-
 /* Botão limpar pedidos antigos */
 .btn-limpar {
     background: #ff4c4c;
@@ -63,6 +35,51 @@ h1 {
 
 .btn-limpar:hover {
     background: #e53939;
+}
+
+/* Filtros de status */
+.filtros {
+    text-align: center;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filtros a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 5px 12px;
+    border-radius: 12px;
+    transition: 0.3s;
+    font-size: 14px;
+}
+
+/* Cores individuais por status */
+.filtro-todos {
+    background: rgba(0, 255, 255, 0.3);
+    color: #0ff;
+}
+
+.filtro-preparo {
+    background: #ff4c4c;
+    color: #fff;
+}
+
+.filtro-producao {
+    background: #4da6ff;
+    color: #fff;
+}
+
+.filtro-entregando {
+    background: #00cc55;
+    color: #fff;
+}
+
+.filtros a:hover {
+    opacity: 0.8;
 }
 
 /* Tabela */
@@ -89,33 +106,57 @@ th {
 }
 
 tr:hover {
-    background: rgba(0, 255, 255, 0.1);
+    opacity: 0.9;
+}
+
+/* Destacar a linha inteira pelo status */
+tr.status-preparo {
+    background: rgba(255, 76, 76, 0.2);
+}
+
+tr.status-producao {
+    background: rgba(77, 166, 255, 0.2);
+}
+
+tr.status-entregando {
+    background: rgba(0, 204, 85, 0.2);
+}
+
+tr.status-preparo:hover {
+    background: rgba(255, 76, 76, 0.35);
+}
+
+tr.status-producao:hover {
+    background: rgba(77, 166, 255, 0.35);
+}
+
+tr.status-entregando:hover {
+    background: rgba(0, 204, 85, 0.35);
 }
 
 /* Status como badges */
-.status-preparo,
-.status-producao,
-.status-entregando {
+.badge {
     color: #fff;
+    bottom: 200px;
     font-weight: bold;
     padding: 4px 10px;
     border-radius: 12px;
     display: inline-block;
 }
 
-.status-preparo {
+.status-preparo.badge {
     background: #ff4c4c;
 }
 
-.status-producao {
+.status-producao.badge {
     background: #4da6ff;
 }
 
-.status-entregando {
+.status-entregando.badge {
     background: #00cc55;
 }
 
-/* Botões de ação com classes (mais confiável que selecionar por href) */
+/* Botões de ação */
 td a {
     text-decoration: none;
     padding: 6px 10px;
@@ -170,7 +211,7 @@ p a:hover {
 }
 
 /* Responsividade */
-@media (max-width: 900px) {
+@media(max-width: 900px) {
 
     table,
     th,
@@ -180,7 +221,7 @@ p a:hover {
 
     td a,
     .btn-limpar,
-    .filtro select {
+    .filtros a {
         padding: 3px 5px;
         font-size: 10px;
     }
