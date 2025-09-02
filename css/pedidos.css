@@ -137,9 +137,9 @@ tr.status-entregando:hover {
 /* Status como badges */
 .badge {
     color: #fff;
-    bottom: 200px;
     font-weight: bold;
-    padding: 4px 10px;
+    top: 9000px;
+    padding: 7px 12px;
     border-radius: 12px;
     display: inline-block;
 }
