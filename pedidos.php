@@ -16,7 +16,6 @@ if (isset($_GET['update_status'], $_GET['id'])) {
     $stmt->bind_param("si", $novo_status, $id_pedido);
     $stmt->execute();
 
-    // Redireciona mantendo filtro (se existir)
     $redirect = "pedidos.php";
     if (isset($_GET['status'])) {
         $redirect .= "?status=" . urlencode($_GET['status']);
@@ -49,6 +48,18 @@ if ($filtro_status != '') {
 } else {
     $pedidos = $conn->query($sql . " ORDER BY pedidos.data DESC");
 }
+
+// Contadores por status
+$status_counts = [
+    'Em preparo' => 0,
+    'Em produção' => 0,
+    'Entregando' => 0
+];
+
+$result_counts = $conn->query("SELECT status, COUNT(*) as total FROM pedidos GROUP BY status");
+while ($row = $result_counts->fetch_assoc()) {
+    $status_counts[$row['status']] = $row['total'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -69,12 +80,12 @@ if ($filtro_status != '') {
     </button>
 </form>
 
-<!-- Filtro de status -->
+<!-- Filtros de status com contadores -->
 <div class="filtros">
-    <a href="pedidos.php">Todos</a> |
-    <a href="pedidos.php?status=<?= urlencode('Em preparo') ?>">Em preparo</a> |
-    <a href="pedidos.php?status=<?= urlencode('Em produção') ?>">Em produção</a> |
-    <a href="pedidos.php?status=<?= urlencode('Entregando') ?>">Entregando</a>
+    <a href="pedidos.php">Todos (<?= array_sum($status_counts) ?>)</a> |
+    <a href="pedidos.php?status=<?= urlencode('Em preparo') ?>">Em preparo (<?= $status_counts['Em preparo'] ?>)</a> |
+    <a href="pedidos.php?status=<?= urlencode('Em produção') ?>">Em produção (<?= $status_counts['Em produção'] ?>)</a> |
+    <a href="pedidos.php?status=<?= urlencode('Entregando') ?>">Entregando (<?= $status_counts['Entregando'] ?>)</a>
 </div>
 
 <table>
