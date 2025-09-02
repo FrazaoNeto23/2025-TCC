@@ -21,7 +21,7 @@ h1 {
     text-shadow: 0 0 10px #0ff;
 }
 
-/* 🔹 Filtro de status */
+/* Filtro de status */
 .filtro {
     text-align: center;
     margin-bottom: 15px;
@@ -92,26 +92,30 @@ tr:hover {
     background: rgba(0, 255, 255, 0.1);
 }
 
-/* Status coloridos sólidos */
-.status-preparo {
-    color: #ff4c4c;
-    /* Vermelho */
+/* Status como badges */
+.status-preparo,
+.status-producao,
+.status-entregando {
+    color: #fff;
     font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.status-preparo {
+    background: #ff4c4c;
 }
 
 .status-producao {
-    color: #4da6ff;
-    /* Azul claro */
-    font-weight: bold;
+    background: #4da6ff;
 }
 
 .status-entregando {
-    color: #00cc55;
-    /* Verde */
-    font-weight: bold;
+    background: #00cc55;
 }
 
-/* Botões de ação */
+/* Botões de ação com classes (mais confiável que selecionar por href) */
 td a {
     text-decoration: none;
     padding: 6px 10px;
@@ -123,31 +127,30 @@ td a {
     font-weight: bold;
 }
 
-/* 🔹 Botões coloridos */
-td a[href*="Em preparo"] {
+.btn-preparo {
     background: #ff4c4c;
     color: #fff;
 }
 
-td a[href*="Em preparo"]:hover {
+.btn-preparo:hover {
     background: #e53939;
 }
 
-td a[href*="Em produção"] {
+.btn-producao {
     background: #4da6ff;
     color: #fff;
 }
 
-td a[href*="Em produção"]:hover {
+.btn-producao:hover {
     background: #3385ff;
 }
 
-td a[href*="Entregando"] {
+.btn-entregando {
     background: #00cc55;
     color: #fff;
 }
 
-td a[href*="Entregando"]:hover {
+.btn-entregando:hover {
     background: #009944;
 }
 
@@ -167,7 +170,7 @@ p a:hover {
 }
 
 /* Responsividade */
-@media(max-width: 900px) {
+@media (max-width: 900px) {
 
     table,
     th,
