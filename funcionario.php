@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     $email = $_POST['email'];
     $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO usuarios (nome, email, senha, tipo) VALUES (?, ?, ?, 'funcionario')";
+    $sql = "INSERT INTO funcionarios (nome, email, senha, tipo) VALUES (?, ?, ?, 'funcionario')";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sss", $nome, $email, $senha);
     $stmt->execute();
@@ -29,11 +29,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
 
     if (!empty($_POST['senha'])) {
         $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
-        $sql = "UPDATE usuarios SET nome=?, email=?, senha=? WHERE id=? AND tipo='funcionario'";
+        $sql = "UPDATE funcionarios SET nome=?, email=?, senha=? WHERE id=? AND tipo='funcionario'";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("sssi", $nome, $email, $senha, $id);
     } else {
-        $sql = "UPDATE usuarios SET nome=?, email=? WHERE id=? AND tipo='funcionario'";
+        $sql = "UPDATE funcionarios SET nome=?, email=? WHERE id=? AND tipo='funcionario'";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ssi", $nome, $email, $id);
     }
@@ -45,13 +45,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
 // EXCLUIR FUNCIONÁRIO
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    $conn->query("DELETE FROM usuarios WHERE id=$id AND tipo='funcionario'");
+    $conn->query("DELETE FROM funcionarios WHERE id=$id AND tipo='funcionario'");
     header("Location: funcionario.php");
     exit;
 }
 
 // LISTAR FUNCIONÁRIOS
-$result = $conn->query("SELECT * FROM usuarios WHERE tipo='funcionario'");
+$result = $conn->query("SELECT * FROM funcionarios WHERE tipo='funcionario'");
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -59,46 +59,75 @@ $result = $conn->query("SELECT * FROM usuarios WHERE tipo='funcionario'");
     <meta charset="UTF-8">
     <title>Gerenciar Funcionários</title>
     <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-    <h1>Gerenciar Funcionários</h1>
+    <h1><i class="fa fa-users"></i> Gerenciar Funcionários</h1>
 
     <!-- FORMULÁRIO DE CADASTRO -->
     <form method="POST">
-        <h2>Cadastrar Funcionário</h2>
+        <h2><i class="fa fa-user-plus"></i> Cadastrar Funcionário</h2>
         <input type="hidden" name="acao" value="cadastrar">
         <input type="text" name="nome" placeholder="Nome completo" required>
         <input type="email" name="email" placeholder="Email" required>
         <input type="password" name="senha" placeholder="Senha" required>
-        <button type="submit">Cadastrar</button>
+        <button type="submit"><i class="fa fa-save"></i> Cadastrar</button>
     </form>
 
-    <h2>Funcionários Cadastrados</h2>
+    <h2><i class="fa fa-list"></i> Funcionários Cadastrados</h2>
     <div class="produtos-container">
         <?php while($row = $result->fetch_assoc()): ?>
             <div class="card-produto">
                 <div class="card-info">
-                    <h3><?= htmlspecialchars($row['nome']) ?></h3>
-                    <p><?= htmlspecialchars($row['email']) ?></p>
+                    <h3><i class="fa fa-id-card"></i> <?= htmlspecialchars($row['nome']) ?></h3>
+                    <p><i class="fa fa-envelope"></i> <?= htmlspecialchars($row['email']) ?></p>
                 </div>
                 <div class="card-acoes">
-                    <!-- Botão editar abre formulário embutido -->
-                    <button onclick="document.getElementById('edit-<?= $row['id'] ?>').style.display='block'">Editar</button>
-                    <a href="funcionario.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Excluir este funcionário?')">Excluir</a>
+                    <!-- Botão abre modal -->
+                    <button onclick="abrirModal(<?= $row['id'] ?>)"><i class="fa fa-edit"></i> Editar</button>
+                    <a href="funcionario.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Excluir este funcionário?')"><i class="fa fa-trash"></i> Excluir</a>
                 </div>
-                <!-- Formulário de edição escondido -->
-                <form method="POST" id="edit-<?= $row['id'] ?>" style="display:none; margin-top:10px;">
-                    <input type="hidden" name="acao" value="editar">
-                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                    <input type="text" name="nome" value="<?= htmlspecialchars($row['nome']) ?>" required>
-                    <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" required>
-                    <input type="password" name="senha" placeholder="Nova senha (opcional)">
-                    <button type="submit">Salvar Alterações</button>
-                </form>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal" id="modal-<?= $row['id'] ?>">
+                <div class="modal-content">
+                    <span class="close" onclick="fecharModal(<?= $row['id'] ?>)">&times;</span>
+                    <h2><i class="fa fa-pen"></i> Editar Funcionário</h2>
+                    <form method="POST">
+                        <input type="hidden" name="acao" value="editar">
+                        <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                        <input type="text" name="nome" value="<?= htmlspecialchars($row['nome']) ?>" required>
+                        <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" required>
+                        <input type="password" name="senha" placeholder="Nova senha (opcional)">
+                        <button type="submit"><i class="fa fa-save"></i> Salvar Alterações</button>
+                    </form>
+                </div>
             </div>
         <?php endwhile; ?>
     </div>
 
-    <p><a href="painel.php">⬅ Voltar ao Painel</a></p>
+    <p><a href="painel_dono.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
+
+    <!-- Sons -->
+    <audio id="sound-open" src="assets/sounds/popup.wav" preload="auto"></audio>
+    <audio id="sound-close" src="assets/sounds/close.wav" preload="auto"></audio>
+
+    <script>
+        function abrirModal(id) {
+            let modal = document.getElementById("modal-" + id);
+            modal.style.display = "flex";
+            modal.classList.remove("fade-out");
+            modal.classList.add("fade-in");
+            document.getElementById("sound-open").play();
+        }
+        function fecharModal(id) {
+            let modal = document.getElementById("modal-" + id);
+            modal.classList.remove("fade-in");
+            modal.classList.add("fade-out");
+            document.getElementById("sound-close").play();
+            setTimeout(() => { modal.style.display = "none"; }, 400);
+        }
+    </script>
 </body>
 </html>
