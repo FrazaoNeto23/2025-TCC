@@ -80,7 +80,6 @@ $pedidos = $conn->query("
         <td class="badge"><span class="badge-text"><?= $pedido['status'] ?></span></td>
         <td>
             <a href="pedidos.php?update_status=Em preparo&id=<?= $pedido['id'] ?>" class="btn-preparo">Em preparo</a>
-            <a href="pedidos.php?update_status=Em produção&id=<?= $pedido['id'] ?>" class="btn-producao">Em produção</a>
             <a href="pedidos.php?update_status=Entregando&id=<?= $pedido['id'] ?>" class="btn-entregando">Entregando</a>
         </td>
     </tr>

@@ -65,10 +65,6 @@ tr.status-preparo {
     background: rgba(255, 76, 76, 0.1);
 }
 
-tr.status-producao {
-    background: rgba(77, 166, 255, 0.1);
-}
-
 tr.status-entregando {
     background: rgba(0, 204, 85, 0.1);
 }
@@ -96,10 +92,6 @@ tr.status-preparo td .badge-text {
     background: #ff4c4c;
 }
 
-tr.status-producao td .badge-text {
-    background: #4da6ff;
-}
-
 tr.status-entregando td .badge-text {
     background: #00cc55;
 }
@@ -124,15 +116,6 @@ td a {
 
 .btn-preparo:hover {
     background: #e53939;
-}
-
-.btn-producao {
-    background: #4da6ff;
-    color: #fff;
-}
-
-.btn-producao:hover {
-    background: #3385ff;
 }
 
 .btn-entregando {
