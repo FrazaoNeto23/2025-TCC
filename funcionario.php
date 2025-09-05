@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     $email = $_POST['email'];
     $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO funcionarios (nome, email, senha, tipo) VALUES (?, ?, ?, 'funcionario')";
+    $sql = "INSERT INTO funcionarios (nome, email, senha) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sss", $nome, $email, $senha);
     $stmt->execute();
@@ -45,13 +45,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
 // EXCLUIR FUNCIONÁRIO
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    $conn->query("DELETE FROM funcionarios WHERE id=$id AND tipo='funcionario'");
+    $conn->query("DELETE FROM funcionarios");
     header("Location: funcionario.php");
     exit;
 }
 
 // LISTAR FUNCIONÁRIOS
-$result = $conn->query("SELECT * FROM funcionarios WHERE tipo='funcionario'");
+$result = $conn->query("SELECT * FROM funcionarios");
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -110,8 +110,8 @@ $result = $conn->query("SELECT * FROM funcionarios WHERE tipo='funcionario'");
     <p><a href="painel_dono.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
 
     <!-- Sons -->
-    <audio id="sound-open" src="assets/sounds/popup.wav" preload="auto"></audio>
-    <audio id="sound-close" src="assets/sounds/close.wav" preload="auto"></audio>
+    <!-- <audio id="sound-open" src="assets/sounds/popup.wav" preload="auto"></audio> -->
+    <!-- <audio id="sound-close" src="assets/sounds/close.wav" preload="auto"></audio> -->
 
     <script>
         function abrirModal(id) {
