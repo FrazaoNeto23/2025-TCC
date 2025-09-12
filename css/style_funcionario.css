@@ -11,7 +11,7 @@ body {
     background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
     color: #fff;
     padding: 30px;
-    min-min-height: 100dvh; height: auto;
+    min-height: 100dvh; height: auto;
 }
 
 /* Título */

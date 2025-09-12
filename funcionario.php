@@ -85,13 +85,15 @@ $result = $conn->query("SELECT * FROM funcionarios");
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Funcionários</title>
-    <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
     <h1><i class="fa fa-users"></i> Gerenciar Funcionários</h1>
 
@@ -111,7 +113,7 @@ $result = $conn->query("SELECT * FROM funcionarios");
 
     <h2><i class="fa fa-list"></i> Funcionários Cadastrados</h2>
     <div class="produtos-container">
-        <?php while($row = $result->fetch_assoc()): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
             <div class="card-produto">
                 <div class="card-info">
                     <?php if (!empty($row['foto'])): ?>
@@ -124,7 +126,8 @@ $result = $conn->query("SELECT * FROM funcionarios");
                 </div>
                 <div class="card-acoes">
                     <button onclick="abrirModal(<?= $row['id'] ?>)"><i class="fa fa-edit"></i> Editar</button>
-                    <a href="funcionario.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Excluir este funcionário?')"><i class="fa fa-trash"></i> Excluir</a>
+                    <a href="funcionario.php?delete=<?= $row['id'] ?>" class="delete"
+                        onclick="return confirm('Excluir este funcionário?')"><i class="fa fa-trash"></i> Excluir</a>
                 </div>
             </div>
 
@@ -140,9 +143,11 @@ $result = $conn->query("SELECT * FROM funcionarios");
                         <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" required>
                         <input type="password" name="senha" placeholder="Nova senha (opcional)">
 
-                        <input type="file" name="foto" accept="image/*" onchange="previewImagem(event, 'preview-<?= $row['id'] ?>')">
+                        <input type="file" name="foto" accept="image/*"
+                            onchange="previewImagem(event, 'preview-<?= $row['id'] ?>')">
                         <?php if (!empty($row['foto'])): ?>
-                            <img id="preview-<?= $row['id'] ?>" src="uploads/<?= htmlspecialchars($row['foto']) ?>" class="foto-funcionario">
+                            <img id="preview-<?= $row['id'] ?>" src="uploads/<?= htmlspecialchars($row['foto']) ?>"
+                                class="foto-funcionario">
                         <?php else: ?>
                             <img id="preview-<?= $row['id'] ?>" class="foto-funcionario" style="display:none;">
                         <?php endif; ?>
@@ -174,7 +179,7 @@ $result = $conn->query("SELECT * FROM funcionarios");
             let file = event.target.files[0];
             if (file) {
                 let reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     preview.src = e.target.result;
                     preview.style.display = "block";
                 }
@@ -183,4 +188,5 @@ $result = $conn->query("SELECT * FROM funcionarios");
         }
     </script>
 </body>
+
 </html>

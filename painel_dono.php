@@ -8,13 +8,15 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <title>Painel do Dono</title>
-    <link rel="stylesheet" href="css/painel.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="css/painel.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
     <h1>Bem-vindo, <?php echo $_SESSION['usuario']; ?>!</h1>
 
@@ -37,4 +39,5 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
         </a>
     </div>
 </body>
+
 </html>

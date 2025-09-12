@@ -13,7 +13,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-min-height: 100dvh; height: auto;
+    min-height: 100dvh; height: auto;
     padding: 20px;
     animation: gradientBG 15s ease infinite, fadeInBody 1s ease forwards;
     opacity: 0;

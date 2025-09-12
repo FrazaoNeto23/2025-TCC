@@ -8,7 +8,9 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
 }
 
 $targetDir = "uploads/";
-if (!is_dir($targetDir)) { mkdir($targetDir, 0777, true); }
+if (!is_dir($targetDir)) {
+    mkdir($targetDir, 0777, true);
+}
 
 // Adicionar produto
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adicionar'])) {
@@ -20,7 +22,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adicionar'])) {
     if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] == 0) {
         $filename = time() . "_" . basename($_FILES['imagem']['name']);
         $targetFile = $targetDir . $filename;
-        if (move_uploaded_file($_FILES['imagem']['tmp_name'], $targetFile)) { $imagem = $filename; }
+        if (move_uploaded_file($_FILES['imagem']['tmp_name'], $targetFile)) {
+            $imagem = $filename;
+        }
     }
 
     $sql = "INSERT INTO produtos (nome, preco, descricao, imagem) VALUES ('$nome', '$preco', '$descricao', '$imagem')";
@@ -34,7 +38,9 @@ if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $res = $conn->query("SELECT imagem FROM produtos WHERE id=$id");
     $row = $res->fetch_assoc();
-    if ($row['imagem'] && file_exists($targetDir . $row['imagem'])) { unlink($targetDir . $row['imagem']); }
+    if ($row['imagem'] && file_exists($targetDir . $row['imagem'])) {
+        unlink($targetDir . $row['imagem']);
+    }
     $conn->query("DELETE FROM produtos WHERE id=$id");
     header("Location: cardapio.php");
     exit;
@@ -45,13 +51,15 @@ $produtos = $conn->query("SELECT * FROM produtos");
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Cardápio</title>
-    <link rel="stylesheet" href="css/cardapio.css?e=<?php echo rand(0,10000)?>">
+    <link rel="stylesheet" href="css/cardapio.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
     <h1>Gerenciar Cardápio</h1>
 
@@ -64,26 +72,28 @@ $produtos = $conn->query("SELECT * FROM produtos");
     </form>
 
     <div class="produtos-container">
-        <?php while($row = $produtos->fetch_assoc()): ?>
-        <div class="card-produto">
-            <?php if ($row['imagem'] && file_exists($targetDir . $row['imagem'])): ?>
-                <img src="<?= $targetDir . $row['imagem'] ?>" alt="<?= $row['nome'] ?>" class="card-img">
-            <?php else: ?>
-                <div class="card-img-placeholder">Sem Imagem</div>
-            <?php endif; ?>
-            <div class="card-info">
-                <h3><?= $row['nome'] ?></h3>
-                <p class="preco">R$ <?= number_format($row['preco'], 2, ',', '.') ?></p>
-                <p class="descricao"><?= $row['descricao'] ?></p>
+        <?php while ($row = $produtos->fetch_assoc()): ?>
+            <div class="card-produto">
+                <?php if ($row['imagem'] && file_exists($targetDir . $row['imagem'])): ?>
+                    <img src="<?= $targetDir . $row['imagem'] ?>" alt="<?= $row['nome'] ?>" class="card-img">
+                <?php else: ?>
+                    <div class="card-img-placeholder">Sem Imagem</div>
+                <?php endif; ?>
+                <div class="card-info">
+                    <h3><?= $row['nome'] ?></h3>
+                    <p class="preco">R$ <?= number_format($row['preco'], 2, ',', '.') ?></p>
+                    <p class="descricao"><?= $row['descricao'] ?></p>
+                </div>
+                <div class="card-acoes">
+                    <a href="editar_produto.php?id=<?= $row['id'] ?>" class="editar"><i class="fa fa-pen"></i> Editar</a>
+                    <a href="cardapio.php?delete=<?= $row['id'] ?>" class="delete"
+                        onclick="return confirm('Tem certeza que deseja excluir?')"><i class="fa fa-trash"></i> Excluir</a>
+                </div>
             </div>
-            <div class="card-acoes">
-                <a href="editar_produto.php?id=<?= $row['id'] ?>" class="editar"><i class="fa fa-pen"></i> Editar</a>
-                <a href="cardapio.php?delete=<?= $row['id'] ?>" class="delete" onclick="return confirm('Tem certeza que deseja excluir?')"><i class="fa fa-trash"></i> Excluir</a>
-            </div>
-        </div>
         <?php endwhile; ?>
     </div>
 
     <p><a href="painel_dono.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
 </body>
+
 </html>
