@@ -35,9 +35,8 @@ if(isset($_POST['acao']) && $_POST['acao'] == "cadastro"){
     $nome = $_POST['nome'];
     $email = $_POST['email'];
     $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
-    $tipo = $_POST['tipo']; // dono ou cliente
+    $tipo = $_POST['tipo'];
 
-    // verifica se email já existe
     $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -67,14 +66,14 @@ if(isset($_POST['acao']) && $_POST['acao'] == "cadastro"){
     <?php if($msg) echo "<p class='msg'>$msg</p>"; ?>
 
     <div class="forms">
-
         <!-- LOGIN -->
-        <form method="POST" class="form-login">
+        <form method="POST" class="form-login active">
             <h2>Login</h2>
             <input type="hidden" name="acao" value="login">
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="senha" placeholder="Senha" required>
             <button type="submit">Entrar</button>
+            <p class="switch" onclick="toggleForms()">Não tem conta? Cadastre-se</p>
         </form>
 
         <!-- CADASTRO -->
@@ -90,9 +89,34 @@ if(isset($_POST['acao']) && $_POST['acao'] == "cadastro"){
                 <option value="dono">Dono</option>
             </select>
             <button type="submit">Cadastrar</button>
+            <p class="switch" onclick="toggleForms()">Já tem conta? Faça login</p>
         </form>
-
     </div>
 </div>
+
+<script>
+function toggleForms() {
+    const loginForm = document.querySelector('.form-login');
+    const cadastroForm = document.querySelector('.form-cadastro');
+
+    if (loginForm.classList.contains('active')) {
+        // anima o login saindo para a esquerda
+        loginForm.classList.remove('active');
+        loginForm.classList.add('slide-out-left');
+
+        // anima o cadastro entrando
+        cadastroForm.classList.remove('slide-out-right');
+        cadastroForm.classList.add('active');
+    } else {
+        // anima o cadastro saindo para a direita
+        cadastroForm.classList.remove('active');
+        cadastroForm.classList.add('slide-out-right');
+
+        // anima o login entrando
+        loginForm.classList.remove('slide-out-left');
+        loginForm.classList.add('active');
+    }
+}
+</script>
 </body>
 </html>

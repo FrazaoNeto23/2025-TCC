@@ -219,3 +219,9 @@ h1 {
         font-size: 0.95rem;
     }
 }
+/* === Responsividade extra (painel.css) === */
+@media (max-width: 420px) {
+  .dashboard-card { padding: 16px 12px; }
+  .dashboard-card i { font-size: 1.6rem; }
+  .dashboard-card span { font-size: 0.9rem; }
+}

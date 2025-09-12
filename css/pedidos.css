@@ -157,3 +157,20 @@ p a:hover {
         font-size: 10px;
     }
 }
+/* === Responsividade (pedidos.css) === */
+@media (max-width: 900px) {
+  body { padding: 16px; }
+  th, td { padding: 8px; }
+  .btn-limpar { padding: 8px 14px; }
+}
+@media (max-width: 700px) {
+  table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead, tbody, th, td, tr { white-space: nowrap; }
+  th, td { font-size: 12px; padding: 6px 8px; }
+  .btn-preparo, .btn-entregando { padding: 4px 8px; font-size: 11px; }
+}
+@media (max-width: 480px) {
+  h1 { font-size: 20px; }
+  .btn-limpar { width: 100%; margin-bottom: 10px; }
+  th, td { font-size: 11px; }
+}

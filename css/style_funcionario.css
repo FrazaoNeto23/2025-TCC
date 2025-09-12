@@ -305,3 +305,30 @@ p a:hover {
     color: #00d4d4;
     text-shadow: 0 0 6px #0ff;
 }
+/* === Responsividade (style_funcionario.css) === */
+@media (max-width: 900px) {
+  body { padding: 18px; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 18px; }
+  form { max-width: 560px; width: 100%; }
+  .produtos-container {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .card-acoes {
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  body { padding: 14px; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 16px; }
+  form input, form button { font-size: 15px; }
+  .modal-content {
+    width: min(92vw, 420px);
+    padding: 18px;
+  }
+  .card-info h3 { font-size: 16px; }
+  .card-info p { font-size: 13px; }
+  .card-acoes button, .card-acoes a { font-size: 13px; }
+}

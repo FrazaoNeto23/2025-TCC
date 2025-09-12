@@ -6,7 +6,6 @@
     font-family: Arial, sans-serif;
 }
 
-/* Corpo */
 body {
     background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
     color: #fff;
@@ -21,9 +20,10 @@ body {
     background: #1e1e1e;
     padding: 30px;
     border-radius: 10px;
-    width: 800px;
     text-align: center;
     box-shadow: 0 0 20px #0ff;
+    width: min(92vw, 400px);
+    overflow: hidden;
 }
 
 /* Título */
@@ -41,30 +41,43 @@ h1 {
     font-weight: bold;
 }
 
-/* Forms lado a lado */
+/* Área dos forms */
 .forms {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
+    position: relative;
+    min-height: 320px;
 }
 
-/* Formulários */
+/* Formulários com slide lateral */
 form {
-    background: #2a2a2a;
-    padding: 20px;
-    border-radius: 10px;
-    flex: 1;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: 100%;
+    opacity: 0;
+    transition: all 0.4s ease-in-out;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
 }
 
-form h2 {
-    color: #0ff;
-    margin-bottom: 10px;
+form.active {
+    left: 0;
+    opacity: 1;
 }
 
-/* Inputs e selects */
+form.slide-out-left {
+    left: -100%;
+    opacity: 0;
+}
+
+form.slide-out-right {
+    left: 100%;
+    opacity: 0;
+}
+
 input,
 select {
     padding: 10px;
@@ -76,7 +89,6 @@ select {
     font-size: 14px;
 }
 
-/* Botões */
 button {
     padding: 10px;
     border-radius: 5px;
@@ -90,4 +102,27 @@ button {
 
 button:hover {
     background: #00d4d4;
+}
+
+/* Link para alternar */
+.switch {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #0ff;
+    cursor: pointer;
+    text-decoration: underline;
+    user-select: none;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 22px;
+    }
+
+    input,
+    select,
+    button {
+        font-size: 15px;
+    }
 }

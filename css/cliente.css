@@ -67,7 +67,7 @@ a.btn-sair:hover {
     width: 50%;
     height: 55%;
     object-fit: cover;
-    border-radius: 5,5px;
+    border-radius: 5.5px;
     margin-bottom: 10px;
 }
 
@@ -127,4 +127,21 @@ table td {
 
 table th {
     background: #0a0a0a;
+}
+/* === Responsividade (cliente.css) === */
+.produtos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.produto { width: 100%; }
+
+@media (max-width: 900px) {
+  .container { padding: 0 10px; }
+  .produto img { width: 100%; height: auto; }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 22px; }
+  .produto { padding: 12px; }
+  table th, table td { font-size: 13px; }
 }
