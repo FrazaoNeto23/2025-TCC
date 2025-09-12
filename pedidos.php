@@ -43,6 +43,7 @@ $pedidos = $conn->query("
 <meta charset="UTF-8">
 <title>Pedidos</title>
 <link rel="stylesheet" href="css/pedidos.css?e=<?php echo rand(0,10000)?>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 <h1>Lista de Pedidos</h1>

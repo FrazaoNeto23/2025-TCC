@@ -174,3 +174,23 @@ p a:hover {
   .btn-limpar { width: 100%; margin-bottom: 10px; }
   th, td { font-size: 11px; }
 }
+
+
+
+/* ===== Mobile stability fixes (added) ===== */
+html { -webkit-text-size-adjust: 100%; }
+img, video, canvas, svg { max-width: 100%; height: auto; }
+
+@supports (min-height: 100dvh) {
+  body { min-height: 100dvh; }
+}
+
+@media (max-width: 600px) {
+  input, select, textarea, button { font-size: 16px !important; }
+}
+
+@media (max-width: 700px) {
+  table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead, tbody, th, td, tr { white-space: nowrap; }
+}
+/* ===== End mobile stability fixes ===== */

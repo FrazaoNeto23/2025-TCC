@@ -59,6 +59,7 @@ if(isset($_POST['acao']) && $_POST['acao'] == "cadastro"){
 <meta charset="UTF-8">
 <title>Acesso</title>
 <link rel="stylesheet" href="css/acesso.css?e=<?php echo rand(0,10000)?>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 <div class="container">
