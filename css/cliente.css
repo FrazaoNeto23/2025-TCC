@@ -128,40 +128,89 @@ table td {
 table th {
     background: #0a0a0a;
 }
+
 /* === Responsividade (cliente.css) === */
 .produtos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
-.produto { width: 100%; }
+
+.produto {
+    width: 100%;
+}
 
 @media (max-width: 900px) {
-  .container { padding: 0 10px; }
-  .produto img { width: 100%; height: auto; }
+    .container {
+        padding: 0 10px;
+    }
+
+    .produto img {
+        width: 100%;
+        height: auto;
+    }
 }
 
 @media (max-width: 600px) {
-  h1 { font-size: 22px; }
-  .produto { padding: 12px; }
-  table th, table td { font-size: 13px; }
+    h1 {
+        font-size: 22px;
+    }
+
+    .produto {
+        padding: 12px;
+    }
+
+    table th,
+    table td {
+        font-size: 13px;
+    }
 }
 
 
 
 /* ===== Mobile stability fixes (added) ===== */
-html { -webkit-text-size-adjust: 100%; }
-img, video, canvas, svg { max-width: 100%; height: auto; }
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    height: auto;
+}
 
 @supports (min-height: 100dvh) {
-  body { min-height: 100dvh; }
+    body {
+        min-height: 100dvh;
+    }
 }
 
 @media (max-width: 600px) {
-  input, select, textarea, button { font-size: 16px !important; }
+
+    input,
+    select,
+    textarea,
+    button {
+        font-size: 16px !important;
+    }
 }
 
 @media (max-width: 700px) {
-  table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  thead, tbody, th, td, tr { white-space: nowrap; }
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+        white-space: nowrap;
+    }
 }
+
 /* ===== End mobile stability fixes ===== */
