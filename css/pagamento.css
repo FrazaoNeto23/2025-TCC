@@ -1,0 +1,665 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    color: #fff;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Botão Voltar */
+.btn-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #0ff;
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 2px solid #0ff;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: 0.3s;
+    font-weight: bold;
+    background: #1e1e1e;
+}
+
+.btn-voltar:hover {
+    background: #0ff;
+    color: #121212;
+    box-shadow: 0 0 20px #0ff;
+    transform: translateX(-5px);
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    color: #0ff;
+    margin-bottom: 30px;
+    text-shadow: 0 0 15px #0ff;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    }
+
+    to {
+        text-shadow: 0 0 20px #0ff, 0 0 30px #0ff, 0 0 40px #0ff;
+    }
+}
+
+/* Resumo do Pedido */
+.pedido-resumo {
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    border: 2px solid #0ff;
+    position: relative;
+    overflow: hidden;
+}
+
+.pedido-resumo::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.1), transparent 70%);
+    animation: rotate 10s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.pedido-resumo h2 {
+    color: #0ff;
+    margin-bottom: 20px;
+    font-size: 22px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pedido-resumo h2::before {
+    content: '🍔';
+    font-size: 24px;
+}
+
+.pedido-resumo p {
+    margin: 12px 0;
+    font-size: 16px;
+    position: relative;
+    z-index: 1;
+    padding-left: 25px;
+    position: relative;
+}
+
+.pedido-resumo p::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #0ff;
+    font-size: 18px;
+}
+
+.pedido-resumo .total {
+    font-size: 24px;
+    color: #0ff;
+    font-weight: bold;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #0ff;
+    text-align: center;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Métodos de Pagamento */
+.metodos-pagamento {
+    margin-bottom: 30px;
+}
+
+.metodos-pagamento h2 {
+    color: #0ff;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 20px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+.metodo-card {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.metodo-card::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s, height 0.4s;
+}
+
+.metodo-card:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.metodo-card:hover {
+    border-color: #0ff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    transform: translateX(5px);
+}
+
+.metodo-card.selected {
+    border-color: #0ff;
+    background: #252525;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+    transform: scale(1.02);
+}
+
+.metodo-card.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #0ff;
+    font-size: 32px;
+    font-weight: bold;
+    animation: checkmark 0.4s ease-out;
+}
+
+@keyframes checkmark {
+    0% {
+        transform: translateY(-50%) scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateY(-50%) scale(1.2);
+    }
+
+    100% {
+        transform: translateY(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.metodo-card input[type="radio"] {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #0ff;
+    position: relative;
+    z-index: 1;
+}
+
+.metodo-card label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    flex: 1;
+    font-size: 18px;
+    font-weight: bold;
+    position: relative;
+    z-index: 1;
+}
+
+.metodo-card i {
+    font-size: 36px;
+    color: #0ff;
+    transition: transform 0.3s;
+}
+
+.metodo-card:hover i {
+    transform: scale(1.2) rotate(5deg);
+}
+
+.metodo-card.selected i {
+    animation: iconBounce 0.6s ease-out;
+}
+
+@keyframes iconBounce {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
+}
+
+/* Áreas de Pagamento */
+.area-pagamento {
+    background: #1e1e1e;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    border: 2px solid #0ff;
+    animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.area-pagamento h3 {
+    color: #0ff;
+    margin-bottom: 25px;
+    text-align: center;
+    font-size: 20px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+/* QR Code PIX */
+.qrcode-container {
+    text-align: center;
+    margin: 20px 0;
+    padding: 25px;
+    background: #fff;
+    border-radius: 12px;
+    display: inline-block;
+    width: 100%;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    animation: qrPulse 3s ease-in-out infinite;
+}
+
+@keyframes qrPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+    }
+}
+
+.qrcode-container img {
+    max-width: 220px;
+    border-radius: 10px;
+    border: 3px solid #0ff;
+}
+
+.instrucao {
+    text-align: center;
+    color: #00d4d4;
+    margin: 20px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.codigo-pix {
+    text-align: center;
+    background: #121212;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    font-family: 'Courier New', monospace;
+    border: 2px solid #0ff;
+    position: relative;
+}
+
+.codigo-pix strong {
+    color: #0ff;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+/* Form Cartão */
+#form-cartao input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 2px solid #0ff;
+    background: #121212;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+#form-cartao input:focus {
+    border-color: #00d4d4;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+#form-cartao input::placeholder {
+    color: #666;
+}
+
+.inline-inputs {
+    display: flex;
+    gap: 15px;
+}
+
+.inline-inputs input {
+    flex: 1;
+}
+
+/* Área Dinheiro */
+#area-dinheiro label {
+    display: block;
+    color: #0ff;
+    margin-bottom: 15px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+#troco {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #0ff;
+    background: #121212;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+#troco:focus {
+    border-color: #00d4d4;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+/* Botão Confirmar */
+#btn-confirmar {
+    width: 100%;
+    padding: 18px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #00cc55, #009944);
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 5px 15px rgba(0, 204, 85, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+#btn-confirmar::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+#btn-confirmar:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+#btn-confirmar:hover:not(:disabled) {
+    background: linear-gradient(135deg, #009944, #00cc55);
+    box-shadow: 0 8px 25px rgba(0, 204, 85, 0.6);
+    transform: translateY(-3px);
+}
+
+#btn-confirmar:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 204, 85, 0.4);
+}
+
+#btn-confirmar:disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.5;
+    box-shadow: none;
+}
+
+#btn-confirmar i {
+    position: relative;
+    z-index: 1;
+}
+
+#btn-confirmar span {
+    position: relative;
+    z-index: 1;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .pedido-resumo,
+    .area-pagamento {
+        padding: 20px;
+    }
+
+    .metodo-card {
+        padding: 15px;
+    }
+
+    .metodo-card i {
+        font-size: 28px;
+    }
+
+    .metodo-card label {
+        font-size: 16px;
+    }
+
+    .qrcode-container img {
+        max-width: 180px;
+    }
+
+    .inline-inputs {
+        flex-direction: column;
+    }
+
+    #btn-confirmar {
+        font-size: 18px;
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 20px;
+    }
+
+    .pedido-resumo h2 {
+        font-size: 18px;
+    }
+
+    .pedido-resumo p {
+        font-size: 14px;
+    }
+
+    .pedido-resumo .total {
+        font-size: 20px;
+    }
+
+    .metodo-card {
+        padding: 12px;
+    }
+
+    .metodo-card i {
+        font-size: 24px;
+    }
+
+    .metodo-card label {
+        font-size: 15px;
+    }
+
+    .qrcode-container {
+        padding: 15px;
+    }
+
+    .qrcode-container img {
+        max-width: 160px;
+    }
+
+    #form-cartao input,
+    #troco {
+        padding: 12px;
+        font-size: 15px;
+    }
+}
+
+/* Mobile Stability */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+@supports (min-height: 100dvh) {
+    body {
+        min-height: 100dvh;
+    }
+}
+
+@media (max-width: 600px) {
+
+    input,
+    select,
+    textarea,
+    button {
+        font-size: 16px !important;
+    }
+}
+
+/* Efeitos extras */
+.metodo-card,
+.area-pagamento,
+.pedido-resumo,
+.btn-voltar,
+#btn-confirmar {
+    will-change: transform;
+}
+
+/* Loading state para o botão */
+#btn-confirmar.loading {
+    pointer-events: none;
+}
+
+#btn-confirmar.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    right: 20px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
