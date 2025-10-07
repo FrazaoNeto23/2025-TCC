@@ -9,31 +9,148 @@
 /* Body */
 body {
     background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
     color: #fff;
     padding: 30px;
     min-height: 100dvh;
-    height: auto;
+}
+
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Header com Botão Voltar */
+.header-page {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    gap: 20px;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header-page .spacer {
+    width: 120px;
+}
+
+.btn-voltar-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #1e1e1e;
+    color: #0ff;
+    text-decoration: none;
+    border-radius: 10px;
+    border: 2px solid #0ff;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-voltar-top::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.btn-voltar-top:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-voltar-top:hover {
+    background: #0ff;
+    color: #121212;
+    box-shadow: 0 0 25px #0ff;
+    transform: translateX(-5px);
 }
 
 /* Título */
 h1 {
     text-align: center;
-    margin-bottom: 30px;
     color: #0ff;
-    text-shadow: 0 0 12px #0ff;
+    text-shadow: 0 0 15px #0ff, 0 0 30px #0ff;
     font-size: 28px;
+    animation: glowPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+    from {
+        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    }
+
+    to {
+        text-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+    }
 }
 
 h1 i {
     margin-right: 10px;
+    animation: iconBounce 2s ease-in-out infinite;
+}
+
+@keyframes iconBounce {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 /* Subtítulos */
 h2 {
-    margin: 20px 0 15px;
+    margin: 30px 0 20px;
     color: #00d4d4;
-    text-shadow: 0 0 8px #0ff;
-    font-size: 20px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    font-size: 22px;
+    animation: fadeInLeft 0.5s ease-out;
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 h2 i {
@@ -43,53 +160,117 @@ h2 i {
 /* Formulário */
 form {
     background: #1c1c1c;
-    padding: 20px;
+    padding: 25px;
     border-radius: 12px;
-    box-shadow: 0 0 15px #0ff;
-    margin-bottom: 25px;
-    max-width: 500px;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+    border: 2px solid #0ff;
+    margin-bottom: 30px;
+    max-width: 550px;
     margin-left: auto;
     margin-right: auto;
+    animation: fadeInUp 0.6s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+form::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.05), transparent 70%);
+    animation: rotateGlow 10s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotateGlow {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 form input {
     width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 6px;
-    border: 1px solid #0ff;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 2px solid #0ff;
     background: #111;
     color: #fff;
-    font-size: 14px;
+    font-size: 15px;
     outline: none;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
 }
 
 form input:focus {
     border-color: #00d4d4;
-    box-shadow: 0 0 8px #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    transform: scale(1.01);
 }
 
 form button {
-    background: #00cc55;
+    background: linear-gradient(135deg, #00cc55, #009944);
     color: #fff;
     border: none;
-    padding: 12px;
-    border-radius: 6px;
+    padding: 14px;
+    border-radius: 8px;
     font-weight: bold;
-    font-size: 15px;
+    font-size: 16px;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
     width: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0, 204, 85, 0.4);
+}
+
+form button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+form button:hover::before {
+    width: 400px;
+    height: 400px;
 }
 
 form button:hover {
-    background: #009944;
-    box-shadow: 0 0 10px #00cc55;
+    background: linear-gradient(135deg, #009944, #00cc55);
+    box-shadow: 0 8px 30px rgba(0, 204, 85, 0.6);
+    transform: translateY(-2px);
 }
 
 form button i {
-    margin-right: 6px;
+    margin-right: 8px;
 }
 
 /* Foto */
@@ -97,18 +278,35 @@ form button i {
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    margin: 10px auto;
+    margin: 15px auto;
     display: block;
     object-fit: cover;
-    border: 2px solid #0ff;
-    box-shadow: 0 0 10px #0ff;
+    border: 3px solid #0ff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.foto-funcionario:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.7);
 }
 
 /* Container */
 .produtos-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
+    animation: fadeIn 0.8s ease-out 0.3s both;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Card */
@@ -116,20 +314,52 @@ form button i {
     background: #1c1c1c;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 0 12px #0ff;
-    transition: 0.3s;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
     text-align: center;
+    animation: cardSlideIn 0.5s ease-out backwards;
+}
+
+.card-produto:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.card-produto:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.card-produto:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.card-produto:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+@keyframes cardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .card-produto:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 0 18px #0ff;
+    transform: translateY(-6px);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    border-color: #0ff;
 }
 
 .card-info h3 {
-    margin: 10px 0 5px;
+    margin: 15px 0 8px;
     color: #0ff;
-    font-size: 18px;
+    font-size: 20px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
 .card-info p {
@@ -139,7 +369,7 @@ form button i {
 
 /* Botões */
 .card-acoes {
-    margin-top: 15px;
+    margin-top: 20px;
     display: flex;
     gap: 10px;
 }
@@ -148,37 +378,64 @@ form button i {
 .card-acoes a {
     flex: 1;
     text-align: center;
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: 10px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: bold;
     text-decoration: none;
-    transition: 0.3s;
+    transition: all 0.3s ease;
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-acoes button::before,
+.card-acoes a::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s, height 0.4s;
+}
+
+.card-acoes button:hover::before,
+.card-acoes a:hover::before {
+    width: 200px;
+    height: 200px;
 }
 
 .card-acoes button {
-    background: #4da6ff;
+    background: linear-gradient(135deg, #4da6ff, #3385ff);
     border: none;
     color: #fff;
     cursor: pointer;
+    box-shadow: 0 3px 10px rgba(77, 166, 255, 0.3);
 }
 
 .card-acoes button:hover {
-    background: #3385ff;
-    box-shadow: 0 0 10px #4da6ff;
+    background: linear-gradient(135deg, #3385ff, #4da6ff);
+    box-shadow: 0 5px 20px rgba(77, 166, 255, 0.5);
+    transform: translateY(-2px);
 }
 
 .card-acoes .delete {
-    background: #ff4c4c;
+    background: linear-gradient(135deg, #ff4c4c, #e53939);
     color: #fff;
+    box-shadow: 0 3px 10px rgba(255, 76, 76, 0.3);
 }
 
 .card-acoes .delete:hover {
-    background: #e53939;
-    box-shadow: 0 0 10px #ff4c4c;
+    background: linear-gradient(135deg, #e53939, #ff4c4c);
+    box-shadow: 0 5px 20px rgba(255, 76, 76, 0.5);
+    transform: translateY(-2px);
 }
 
 /* Modal */
@@ -196,121 +453,136 @@ form button i {
 }
 
 .modal.fade-in {
-    animation: fadeIn 0.4s forwards;
+    animation: modalFadeIn 0.4s forwards;
 }
 
 .modal.fade-out {
-    animation: fadeOut 0.4s forwards;
+    animation: modalFadeOut 0.4s forwards;
+}
+
+@keyframes modalFadeIn {
+    from {
+        background: rgba(0, 0, 0, 0);
+    }
+
+    to {
+        background: rgba(0, 0, 0, 0.85);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        background: rgba(0, 0, 0, 0.85);
+    }
+
+    to {
+        background: rgba(0, 0, 0, 0);
+    }
 }
 
 .modal-content {
     background: #1c1c1c;
-    padding: 25px;
-    border-radius: 12px;
-    width: 400px;
-    box-shadow: 0 0 15px #0ff;
+    padding: 30px;
+    border-radius: 15px;
+    width: min(92vw, 450px);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+    border: 2px solid #0ff;
     position: relative;
     transform: scale(0.7);
     opacity: 0;
-    animation: zoomIn 0.4s forwards;
+    animation: modalZoomIn 0.4s forwards;
 }
 
 .modal.fade-out .modal-content {
-    animation: zoomOut 0.4s forwards;
+    animation: modalZoomOut 0.4s forwards;
+}
+
+@keyframes modalZoomIn {
+    from {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes modalZoomOut {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(0.7);
+        opacity: 0;
+    }
 }
 
 .modal-content h2 {
     color: #0ff;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     text-align: center;
-}
-
-.modal-content form input {
-    margin: 10px 0;
-}
-
-.modal-content form button {
-    margin-top: 10px;
+    text-shadow: 0 0 15px #0ff;
 }
 
 .close {
     position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 22px;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
     cursor: pointer;
     color: #ff4c4c;
     font-weight: bold;
+    transition: all 0.3s ease;
+    z-index: 10;
 }
 
 .close:hover {
     color: #e53939;
-}
-
-/* Animações */
-@keyframes fadeIn {
-    from {
-        background: rgba(0, 0, 0, 0);
-    }
-
-    to {
-        background: rgba(0, 0, 0, 0.8);
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        background: rgba(0, 0, 0, 0.8);
-    }
-
-    to {
-        background: rgba(0, 0, 0, 0);
-    }
-}
-
-@keyframes zoomIn {
-    from {
-        transform: scale(0.7);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes zoomOut {
-    from {
-        transform: scale(1);
-        opacity: 1;
-    }
-
-    to {
-        transform: scale(0.7);
-        opacity: 0;
-    }
+    transform: rotate(90deg) scale(1.2);
+    text-shadow: 0 0 15px #ff4c4c;
 }
 
 /* Voltar */
 p a {
-    display: inline-block;
-    margin-top: 25px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 30px;
     color: #0ff;
     text-decoration: none;
     font-weight: bold;
-    transition: 0.3s;
+    padding: 10px 20px;
+    border: 2px solid #0ff;
+    border-radius: 8px;
+    background: #1e1e1e;
+    transition: all 0.3s ease;
 }
 
 p a:hover {
     color: #00d4d4;
-    text-shadow: 0 0 6px #0ff;
+    text-shadow: 0 0 10px #0ff;
+    background: #252525;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    transform: translateX(-5px);
 }
 
-/* === Responsividade (style_funcionario.css) === */
+/* Responsividade */
 @media (max-width: 900px) {
     body {
-        padding: 18px;
+        padding: 20px;
+    }
+
+    .header-page {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .header-page .spacer {
+        display: none;
     }
 
     h1 {
@@ -318,17 +590,11 @@ p a:hover {
     }
 
     h2 {
-        font-size: 18px;
-    }
-
-    form {
-        max-width: 560px;
-        width: 100%;
+        font-size: 20px;
     }
 
     .produtos-container {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 
     .card-acoes {
@@ -338,7 +604,7 @@ p a:hover {
 
 @media (max-width: 600px) {
     body {
-        padding: 14px;
+        padding: 15px;
     }
 
     h1 {
@@ -346,36 +612,20 @@ p a:hover {
     }
 
     h2 {
-        font-size: 16px;
+        font-size: 18px;
     }
 
     form input,
     form button {
-        font-size: 15px;
+        font-size: 16px !important;
     }
 
     .modal-content {
-        width: min(92vw, 420px);
-        padding: 18px;
-    }
-
-    .card-info h3 {
-        font-size: 16px;
-    }
-
-    .card-info p {
-        font-size: 13px;
-    }
-
-    .card-acoes button,
-    .card-acoes a {
-        font-size: 13px;
+        padding: 20px;
     }
 }
 
-
-
-/* ===== Mobile stability fixes (added) ===== */
+/* Mobile Stability */
 html {
     -webkit-text-size-adjust: 100%;
 }
@@ -393,32 +643,3 @@ svg {
         min-height: 100dvh;
     }
 }
-
-@media (max-width: 600px) {
-
-    input,
-    select,
-    textarea,
-    button {
-        font-size: 16px !important;
-    }
-}
-
-@media (max-width: 700px) {
-    table {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    thead,
-    tbody,
-    th,
-    td,
-    tr {
-        white-space: nowrap;
-    }
-}
-
-/* ===== End mobile stability fixes ===== */
