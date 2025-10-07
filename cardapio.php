@@ -61,7 +61,11 @@ $produtos = $conn->query("SELECT * FROM produtos");
 </head>
 
 <body>
-    <h1>Gerenciar Cardápio</h1>
+    <div class="header-page">
+        <a href="painel_dono.php" class="btn-voltar-top"><i class="fa fa-arrow-left"></i> Voltar</a>
+        <h1><i class="fa fa-utensils"></i> Gerenciar Cardápio</h1>
+        <div class="spacer"></div>
+    </div>
 
     <form method="post" enctype="multipart/form-data">
         <input type="text" name="nome" placeholder="Nome do produto" required>
@@ -92,8 +96,6 @@ $produtos = $conn->query("SELECT * FROM produtos");
             </div>
         <?php endwhile; ?>
     </div>
-
-    <p><a href="painel_dono.php"><i class="fa fa-arrow-left"></i> Voltar ao Painel</a></p>
 </body>
 
 </html>
