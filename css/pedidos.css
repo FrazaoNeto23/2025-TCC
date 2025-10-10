@@ -270,6 +270,8 @@ h1 {
     align-items: center;
     padding-bottom: 15px;
     border-bottom: 2px solid #121212;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .pedido-numero .numero {
@@ -278,9 +280,28 @@ h1 {
     color: #0ff;
 }
 
-.pedido-numero .hora {
-    font-size: 14px;
-    color: #aaa;
+.pedido-numero .mesa-info {
+    font-size: 16px;
+    color: #0ff;
+    background: #121212;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.pedido-numero .mesa-info.delivery {
+    color: #ffa500;
+    border-color: #ffa500;
+    box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+}
+
+.pedido-numero .mesa-info i {
+    font-size: 18px;
 }
 
 /* Cliente */
@@ -583,4 +604,44 @@ svg {
     button {
         font-size: 16px !important;
     }
+}
+
+.pedido-numero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #121212;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pedido-numero .numero {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0ff;
+}
+
+.pedido-numero .mesa-info {
+    font-size: 16px;
+    color: #0ff;
+    background: #121212;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.pedido-numero .mesa-info.delivery {
+    color: #ffa500;
+    border-color: #ffa500;
+    box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+}
+
+.pedido-numero .mesa-info i {
+    font-size: 18px;
 }

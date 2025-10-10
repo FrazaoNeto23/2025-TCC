@@ -55,11 +55,18 @@ $pedidos = $conn->query("
     SELECT pedidos.*, 
            usuarios.nome AS cliente_nome,
            usuarios.email AS cliente_email,
-           produtos.nome AS produto_nome,
-           produtos.imagem AS produto_imagem
+           CASE 
+               WHEN pedidos.tipo_produto = 'normal' THEN produtos.nome
+               WHEN pedidos.tipo_produto = 'especial' THEN produtos_especiais.nome
+           END as produto_nome,
+           CASE 
+               WHEN pedidos.tipo_produto = 'normal' THEN produtos.imagem
+               WHEN pedidos.tipo_produto = 'especial' THEN produtos_especiais.imagem
+           END as produto_imagem
     FROM pedidos
     JOIN usuarios ON pedidos.id_cliente = usuarios.id
-    JOIN produtos ON pedidos.id_produto = produtos.id
+    LEFT JOIN produtos ON pedidos.id_produto = produtos.id AND pedidos.tipo_produto = 'normal'
+    LEFT JOIN produtos_especiais ON pedidos.id_produto = produtos_especiais.id AND pedidos.tipo_produto = 'especial'
     $where_sql
     ORDER BY 
         CASE 
@@ -185,7 +192,11 @@ $stats = $conn->query("
                     <div class="pedido-card-grid status-<?= $status_class ?>">
                         <div class="pedido-numero">
                             <span class="numero">#<?= $p['id'] ?></span>
-                            <span class="hora"><?= date('H:i', strtotime($p['data'])) ?></span>
+                            <?php if ($p['numero_mesa']): ?>
+                                <span class="mesa-info"><i class="fa fa-table"></i> Mesa <?= $p['numero_mesa'] ?></span>
+                            <?php else: ?>
+                                <span class="mesa-info delivery"><i class="fa fa-motorcycle"></i> Delivery</span>
+                            <?php endif; ?>
                         </div>
 
                         <div class="pedido-cliente">
@@ -204,7 +215,8 @@ $stats = $conn->query("
                                 <h3><?= $p['produto_nome'] ?></h3>
                                 <p><i class="fa fa-box"></i> Qtd: <?= $p['quantidade'] ?></p>
                                 <p class="total"><i class="fa fa-dollar-sign"></i> R$
-                                    <?= number_format($p['total'], 2, ',', '.') ?></p>
+                                    <?= number_format($p['total'], 2, ',', '.') ?>
+                                </p>
                             </div>
                         </div>
 

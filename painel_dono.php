@@ -25,6 +25,10 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
             <i class="fa fa-utensils fa-2x"></i>
             <span>Gerenciar Cardápio</span>
         </a>
+        <a href="cardapio_especial.php" class="dashboard-card especial">
+            <i class="fa fa-star fa-2x"></i>
+            <span>Cardápio Especial</span>
+        </a>
         <a href="funcionario.php" class="dashboard-card">
             <i class="fa fa-users fa-2x"></i>
             <span>Gerenciar Funcionários</span>

@@ -64,34 +64,34 @@ $produtos = $conn->query("SELECT * FROM produtos_especiais");
             border: 2px solid #ffa500;
             box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
         }
-
+        
         .card-produto:hover {
             border-color: #ff8c00;
             box-shadow: 0 0 35px rgba(255, 165, 0, 0.6);
         }
-
+        
         .card-info h3 {
             color: #ffa500;
         }
-
+        
         .card-info .preco {
             color: #ff8c00;
         }
-
+        
         .card-acoes {
             border-top: 2px solid #ffa500;
         }
-
+        
         h1 {
             color: #ffa500 !important;
             text-shadow: 0 0 15px #ffa500, 0 0 30px #ffa500 !important;
         }
-
+        
         form {
             border: 2px solid #ffa500;
             box-shadow: 0 0 25px rgba(255, 165, 0, 0.4);
         }
-
+        
         form input:focus,
         form textarea:focus {
             border-color: #ff8c00;
@@ -129,8 +129,7 @@ $produtos = $conn->query("SELECT * FROM produtos_especiais");
                     <p class="descricao"><?= $row['descricao'] ?></p>
                 </div>
                 <div class="card-acoes">
-                    <a href="editar_produto_especial.php?id=<?= $row['id'] ?>" class="editar"><i class="fa fa-pen"></i>
-                        Editar</a>
+                    <a href="editar_produto_especial.php?id=<?= $row['id'] ?>" class="editar"><i class="fa fa-pen"></i> Editar</a>
                     <a href="cardapio_especial.php?delete=<?= $row['id'] ?>" class="delete"
                         onclick="return confirm('Tem certeza que deseja excluir?')"><i class="fa fa-trash"></i> Excluir</a>
                 </div>
