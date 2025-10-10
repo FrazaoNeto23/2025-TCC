@@ -134,22 +134,13 @@ ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_ibfk_1` FOREIGN KEY (`id_cliente`)
 ADD CONSTRAINT `pedidos_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`),
 COMMIT
 
+
+/* ATUALIZAÇÕES */
 --------------------------------------------------------------------
-
-
--- ================================================
--- BANCO DE DADOS COMPLETO - BURGER HOUSE
--- Versão Atualizada com Sistema de Carrinho, 
--- Mesas e Cardápio Especial
--- ================================================
-
 -- Criar banco de dados
 CREATE DATABASE IF NOT EXISTS `burger_house` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
 USE `burger_house`;
 
--- ================================================
--- TABELA: funcionarios
--- ================================================
 CREATE TABLE `funcionarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -160,9 +151,6 @@ CREATE TABLE `funcionarios` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- ================================================
--- TABELA: usuarios
--- ================================================
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -173,16 +161,12 @@ CREATE TABLE `usuarios` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- Inserir usuários de exemplo
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha`, `tipo`) VALUES
 (4, 'joao', 'dono@burger.com', '$2y$10$5eGH1FwVNpDbDzSs2HssMehdYNlZqqCh4VFrDFRdMkz58BgLbrhXe', 'dono'),
 (5, 'Donizete', 'cliente@burger.com', '$2y$10$Y6YJPBMF2YBqwaRsY1Z4s.ASdC5NekkyzwQIS9AI.55YkyZ9L9HaO', 'cliente'),
 (12, 'Rafa', 'teste@teste.com', '$2y$10$AMCQAroGQAzJpWeMCtSGHeP9ucs.sOGo2Yq1szHDRDHbuAhe41OzS', 'cliente'),
 (13, 'Joao', 'neto@dono.com', '$2y$10$lQOOf/mEhd2sUnckNHL6u.WqeLdBjzEfa8c.F3MWYrQRFk4MStbYi', 'dono');
 
--- ================================================
--- TABELA: produtos (Cardápio Normal)
--- ================================================
 CREATE TABLE `produtos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -192,7 +176,6 @@ CREATE TABLE `produtos` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- Inserir produtos de exemplo
 INSERT INTO `produtos` (`id`, `nome`, `descricao`, `preco`, `imagem`) VALUES
 (13, 'X-Burguer', 'Pão brioche, carne bovina 120g, queijo cheddar.', 23.50, '1757425983_Cheesburguer.jpg'),
 (14, 'X-Salada', 'Pão brioche, carne bovina 150g, alface fatiada, tomate, cebola e queijo cheddar.', 25.90, '1757426044_x-salada.png'),
@@ -200,9 +183,6 @@ INSERT INTO `produtos` (`id`, `nome`, `descricao`, `preco`, `imagem`) VALUES
 (16, 'Coca Lata', 'Coca bem gelada, pode trazer de acompanhamento um copo com gelo e limão (opcional)', 6.50, ''),
 (17, 'Batata Frita', 'Porção de batata frita crocante', 12.90, '');
 
--- ================================================
--- TABELA: produtos_especiais (Cardápio Especial) ⭐ NOVO
--- ================================================
 CREATE TABLE `produtos_especiais` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -212,15 +192,11 @@ CREATE TABLE `produtos_especiais` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- Inserir produtos especiais de exemplo
 INSERT INTO `produtos_especiais` (`id`, `nome`, `descricao`, `preco`, `imagem`) VALUES
 (1, 'Burger Premium Especial', 'Pão artesanal, carne angus 200g, queijo gorgonzola, cebola caramelizada e molho especial da casa', 45.90, ''),
 (2, 'Combo Executivo', 'X-Bacon + Batata Frita + Refrigerante + Sobremesa', 39.90, ''),
 (3, 'Milk Shake Premium', 'Milk shake de chocolate belga com sorvete artesanal', 18.90, '');
 
--- ================================================
--- TABELA: pedidos (ATUALIZADA) 🔄
--- ================================================
 CREATE TABLE `pedidos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_cliente` int(11) NOT NULL,
@@ -243,9 +219,6 @@ CREATE TABLE `pedidos` (
   CONSTRAINT `pedidos_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- ================================================
--- TABELA: carrinho ⭐ NOVO
--- ================================================
 CREATE TABLE `carrinho` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_cliente` int(11) NOT NULL,
@@ -260,22 +233,12 @@ CREATE TABLE `carrinho` (
   CONSTRAINT `carrinho_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- ================================================
--- ÍNDICES E CHAVES ESTRANGEIRAS ADICIONAIS
--- ================================================
-
--- Índice para buscar pedidos por mesa
 CREATE INDEX idx_pedidos_mesa ON pedidos(numero_mesa);
 
--- Índice para buscar itens do carrinho por cliente
 CREATE INDEX idx_carrinho_cliente ON carrinho(id_cliente);
 
--- Índice para tipo de produto nos pedidos
 CREATE INDEX idx_pedidos_tipo ON pedidos(tipo_produto);
 
--- ================================================
--- AUTO_INCREMENT
--- ================================================
 ALTER TABLE `funcionarios` AUTO_INCREMENT=1;
 ALTER TABLE `usuarios` AUTO_INCREMENT=14;
 ALTER TABLE `produtos` AUTO_INCREMENT=18;
@@ -283,27 +246,16 @@ ALTER TABLE `produtos_especiais` AUTO_INCREMENT=4;
 ALTER TABLE `pedidos` AUTO_INCREMENT=1;
 ALTER TABLE `carrinho` AUTO_INCREMENT=1;
 
--- ================================================
--- TRIGGERS (Opcional - para limpeza automática)
--- ================================================
-
--- Trigger para limpar carrinho quando pedido é finalizado
 DELIMITER $$
 CREATE TRIGGER limpar_carrinho_apos_pedido
 AFTER INSERT ON pedidos
 FOR EACH ROW
 BEGIN
-  -- Pode adicionar lógica adicional aqui se necessário
-  -- Por exemplo, logs ou notificações
+
   NULL;
 END$$
 DELIMITER ;
 
--- ================================================
--- VIEWS ÚTEIS (Opcional)
--- ================================================
-
--- View para ver todos os pedidos com informações completas
 CREATE OR REPLACE VIEW vw_pedidos_completos AS
 SELECT 
   p.id,
@@ -330,7 +282,6 @@ JOIN usuarios u ON p.id_cliente = u.id
 LEFT JOIN produtos prod ON p.id_produto = prod.id AND p.tipo_produto = 'normal'
 LEFT JOIN produtos_especiais pe ON p.id_produto = pe.id AND p.tipo_produto = 'especial';
 
--- View para ver carrinho com informações completas
 CREATE OR REPLACE VIEW vw_carrinho_completo AS
 SELECT 
   c.id,
@@ -360,11 +311,6 @@ JOIN usuarios u ON c.id_cliente = u.id
 LEFT JOIN produtos prod ON c.id_produto = prod.id AND c.tipo_produto = 'normal'
 LEFT JOIN produtos_especiais pe ON c.id_produto = pe.id AND c.tipo_produto = 'especial';
 
--- ================================================
--- PROCEDURES ÚTEIS (Opcional)
--- ================================================
-
--- Procedure para limpar pedidos antigos (mais de 30 dias)
 DELIMITER $$
 CREATE PROCEDURE limpar_pedidos_antigos()
 BEGIN
@@ -374,7 +320,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Procedure para obter estatísticas do dia
 DELIMITER $$
 CREATE PROCEDURE estatisticas_dia()
 BEGIN
@@ -392,45 +337,18 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ================================================
--- DADOS DE TESTE (Opcional - Remover em produção)
--- ================================================
-
--- Inserir funcionário de teste
--- Senha: 123456
 INSERT INTO `funcionarios` (`nome`, `email`, `senha`, `foto`) VALUES
 ('Carlos Silva', 'funcionario@burger.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL);
 
--- ================================================
--- PERMISSÕES (Ajustar conforme necessário)
--- ================================================
-
--- Garantir que o usuário MySQL tem permissões
--- GRANT ALL PRIVILEGES ON burger_house.* TO 'root'@'localhost';
--- FLUSH PRIVILEGES;
-
--- ================================================
--- COMMIT
--- ================================================
 COMMIT;
 
--- ================================================
--- VERIFICAÇÃO FINAL
--- ================================================
-
--- Verificar todas as tabelas criadas
 SHOW TABLES;
 
--- Verificar estrutura das tabelas principais
 DESCRIBE usuarios;
 DESCRIBE funcionarios;
 DESCRIBE produtos;
 DESCRIBE produtos_especiais;
 DESCRIBE pedidos;
 DESCRIBE carrinho;
-
--- ================================================
--- FIM DO SCRIPT
--- ================================================
 
 SELECT 'Banco de dados BURGER HOUSE criado com sucesso!' AS Status;
