@@ -133,3 +133,304 @@ AUTO_INCREMENT = 14;
 ALTER TABLE `pedidos` ADD CONSTRAINT `pedidos_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `usuarios` (`id`),
 ADD CONSTRAINT `pedidos_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`),
 COMMIT
+
+--------------------------------------------------------------------
+
+
+-- ================================================
+-- BANCO DE DADOS COMPLETO - BURGER HOUSE
+-- Versão Atualizada com Sistema de Carrinho, 
+-- Mesas e Cardápio Especial
+-- ================================================
+
+-- Criar banco de dados
+CREATE DATABASE IF NOT EXISTS `burger_house` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+USE `burger_house`;
+
+-- ================================================
+-- TABELA: funcionarios
+-- ================================================
+CREATE TABLE `funcionarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `senha` varchar(255) NOT NULL,
+  `foto` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- ================================================
+-- TABELA: usuarios
+-- ================================================
+CREATE TABLE `usuarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `senha` varchar(255) NOT NULL,
+  `tipo` enum('dono','cliente') NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- Inserir usuários de exemplo
+INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha`, `tipo`) VALUES
+(4, 'joao', 'dono@burger.com', '$2y$10$5eGH1FwVNpDbDzSs2HssMehdYNlZqqCh4VFrDFRdMkz58BgLbrhXe', 'dono'),
+(5, 'Donizete', 'cliente@burger.com', '$2y$10$Y6YJPBMF2YBqwaRsY1Z4s.ASdC5NekkyzwQIS9AI.55YkyZ9L9HaO', 'cliente'),
+(12, 'Rafa', 'teste@teste.com', '$2y$10$AMCQAroGQAzJpWeMCtSGHeP9ucs.sOGo2Yq1szHDRDHbuAhe41OzS', 'cliente'),
+(13, 'Joao', 'neto@dono.com', '$2y$10$lQOOf/mEhd2sUnckNHL6u.WqeLdBjzEfa8c.F3MWYrQRFk4MStbYi', 'dono');
+
+-- ================================================
+-- TABELA: produtos (Cardápio Normal)
+-- ================================================
+CREATE TABLE `produtos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `preco` decimal(10,2) NOT NULL,
+  `imagem` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- Inserir produtos de exemplo
+INSERT INTO `produtos` (`id`, `nome`, `descricao`, `preco`, `imagem`) VALUES
+(13, 'X-Burguer', 'Pão brioche, carne bovina 120g, queijo cheddar.', 23.50, '1757425983_Cheesburguer.jpg'),
+(14, 'X-Salada', 'Pão brioche, carne bovina 150g, alface fatiada, tomate, cebola e queijo cheddar.', 25.90, '1757426044_x-salada.png'),
+(15, 'X-Bacon', 'Pão brioche, carne bovina 120g, queijo cheddar e fatias de bacon artesanal.', 27.90, '1757426136_Bacon.jpg'),
+(16, 'Coca Lata', 'Coca bem gelada, pode trazer de acompanhamento um copo com gelo e limão (opcional)', 6.50, ''),
+(17, 'Batata Frita', 'Porção de batata frita crocante', 12.90, '');
+
+-- ================================================
+-- TABELA: produtos_especiais (Cardápio Especial) ⭐ NOVO
+-- ================================================
+CREATE TABLE `produtos_especiais` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `preco` decimal(10,2) NOT NULL,
+  `imagem` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- Inserir produtos especiais de exemplo
+INSERT INTO `produtos_especiais` (`id`, `nome`, `descricao`, `preco`, `imagem`) VALUES
+(1, 'Burger Premium Especial', 'Pão artesanal, carne angus 200g, queijo gorgonzola, cebola caramelizada e molho especial da casa', 45.90, ''),
+(2, 'Combo Executivo', 'X-Bacon + Batata Frita + Refrigerante + Sobremesa', 39.90, ''),
+(3, 'Milk Shake Premium', 'Milk shake de chocolate belga com sorvete artesanal', 18.90, '');
+
+-- ================================================
+-- TABELA: pedidos (ATUALIZADA) 🔄
+-- ================================================
+CREATE TABLE `pedidos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_cliente` int(11) NOT NULL,
+  `numero_mesa` int(11) DEFAULT NULL,
+  `id_produto` int(11) NOT NULL,
+  `tipo_produto` enum('normal','especial') DEFAULT 'normal',
+  `quantidade` int(11) NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `data` timestamp NOT NULL DEFAULT current_timestamp(),
+  `data_pedido` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` varchar(50) DEFAULT 'Pendente',
+  `metodo_pagamento` varchar(50) DEFAULT NULL,
+  `status_pagamento` varchar(50) DEFAULT 'Aguardando',
+  PRIMARY KEY (`id`),
+  KEY `id_produto` (`id_produto`),
+  KEY `idx_pedidos_cliente` (`id_cliente`),
+  KEY `idx_pedidos_status` (`status`),
+  KEY `idx_pedidos_pagamento` (`status_pagamento`),
+  CONSTRAINT `pedidos_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `pedidos_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- ================================================
+-- TABELA: carrinho ⭐ NOVO
+-- ================================================
+CREATE TABLE `carrinho` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_cliente` int(11) NOT NULL,
+  `id_produto` int(11) NOT NULL,
+  `quantidade` int(11) NOT NULL,
+  `tipo_produto` enum('normal','especial') DEFAULT 'normal',
+  `data_adicao` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_cliente` (`id_cliente`),
+  KEY `id_produto` (`id_produto`),
+  CONSTRAINT `carrinho_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `carrinho_ibfk_2` FOREIGN KEY (`id_produto`) REFERENCES `produtos` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- ================================================
+-- ÍNDICES E CHAVES ESTRANGEIRAS ADICIONAIS
+-- ================================================
+
+-- Índice para buscar pedidos por mesa
+CREATE INDEX idx_pedidos_mesa ON pedidos(numero_mesa);
+
+-- Índice para buscar itens do carrinho por cliente
+CREATE INDEX idx_carrinho_cliente ON carrinho(id_cliente);
+
+-- Índice para tipo de produto nos pedidos
+CREATE INDEX idx_pedidos_tipo ON pedidos(tipo_produto);
+
+-- ================================================
+-- AUTO_INCREMENT
+-- ================================================
+ALTER TABLE `funcionarios` AUTO_INCREMENT=1;
+ALTER TABLE `usuarios` AUTO_INCREMENT=14;
+ALTER TABLE `produtos` AUTO_INCREMENT=18;
+ALTER TABLE `produtos_especiais` AUTO_INCREMENT=4;
+ALTER TABLE `pedidos` AUTO_INCREMENT=1;
+ALTER TABLE `carrinho` AUTO_INCREMENT=1;
+
+-- ================================================
+-- TRIGGERS (Opcional - para limpeza automática)
+-- ================================================
+
+-- Trigger para limpar carrinho quando pedido é finalizado
+DELIMITER $$
+CREATE TRIGGER limpar_carrinho_apos_pedido
+AFTER INSERT ON pedidos
+FOR EACH ROW
+BEGIN
+  -- Pode adicionar lógica adicional aqui se necessário
+  -- Por exemplo, logs ou notificações
+  NULL;
+END$$
+DELIMITER ;
+
+-- ================================================
+-- VIEWS ÚTEIS (Opcional)
+-- ================================================
+
+-- View para ver todos os pedidos com informações completas
+CREATE OR REPLACE VIEW vw_pedidos_completos AS
+SELECT 
+  p.id,
+  p.numero_mesa,
+  u.nome AS cliente_nome,
+  u.email AS cliente_email,
+  CASE 
+    WHEN p.tipo_produto = 'normal' THEN prod.nome
+    WHEN p.tipo_produto = 'especial' THEN pe.nome
+  END AS produto_nome,
+  CASE 
+    WHEN p.tipo_produto = 'normal' THEN prod.preco
+    WHEN p.tipo_produto = 'especial' THEN pe.preco
+  END AS produto_preco,
+  p.quantidade,
+  p.total,
+  p.status,
+  p.status_pagamento,
+  p.metodo_pagamento,
+  p.tipo_produto,
+  p.data
+FROM pedidos p
+JOIN usuarios u ON p.id_cliente = u.id
+LEFT JOIN produtos prod ON p.id_produto = prod.id AND p.tipo_produto = 'normal'
+LEFT JOIN produtos_especiais pe ON p.id_produto = pe.id AND p.tipo_produto = 'especial';
+
+-- View para ver carrinho com informações completas
+CREATE OR REPLACE VIEW vw_carrinho_completo AS
+SELECT 
+  c.id,
+  u.nome AS cliente_nome,
+  u.email AS cliente_email,
+  CASE 
+    WHEN c.tipo_produto = 'normal' THEN prod.nome
+    WHEN c.tipo_produto = 'especial' THEN pe.nome
+  END AS produto_nome,
+  CASE 
+    WHEN c.tipo_produto = 'normal' THEN prod.preco
+    WHEN c.tipo_produto = 'especial' THEN pe.preco
+  END AS produto_preco,
+  CASE 
+    WHEN c.tipo_produto = 'normal' THEN prod.imagem
+    WHEN c.tipo_produto = 'especial' THEN pe.imagem
+  END AS produto_imagem,
+  c.quantidade,
+  c.tipo_produto,
+  c.data_adicao,
+  CASE 
+    WHEN c.tipo_produto = 'normal' THEN prod.preco * c.quantidade
+    WHEN c.tipo_produto = 'especial' THEN pe.preco * c.quantidade
+  END AS subtotal
+FROM carrinho c
+JOIN usuarios u ON c.id_cliente = u.id
+LEFT JOIN produtos prod ON c.id_produto = prod.id AND c.tipo_produto = 'normal'
+LEFT JOIN produtos_especiais pe ON c.id_produto = pe.id AND c.tipo_produto = 'especial';
+
+-- ================================================
+-- PROCEDURES ÚTEIS (Opcional)
+-- ================================================
+
+-- Procedure para limpar pedidos antigos (mais de 30 dias)
+DELIMITER $$
+CREATE PROCEDURE limpar_pedidos_antigos()
+BEGIN
+  DELETE FROM pedidos 
+  WHERE status = 'Entregue' 
+  AND data < DATE_SUB(NOW(), INTERVAL 30 DAY);
+END$$
+DELIMITER ;
+
+-- Procedure para obter estatísticas do dia
+DELIMITER $$
+CREATE PROCEDURE estatisticas_dia()
+BEGIN
+  SELECT 
+    COUNT(*) as total_pedidos,
+    SUM(CASE WHEN status = 'Pendente' THEN 1 ELSE 0 END) as pendentes,
+    SUM(CASE WHEN status = 'Em preparo' THEN 1 ELSE 0 END) as em_preparo,
+    SUM(CASE WHEN status = 'Entregando' THEN 1 ELSE 0 END) as entregando,
+    SUM(CASE WHEN status = 'Entregue' THEN 1 ELSE 0 END) as entregues,
+    SUM(total) as faturamento_total,
+    COUNT(DISTINCT id_cliente) as clientes_atendidos,
+    COUNT(DISTINCT numero_mesa) as mesas_ocupadas
+  FROM pedidos
+  WHERE DATE(data) = CURDATE();
+END$$
+DELIMITER ;
+
+-- ================================================
+-- DADOS DE TESTE (Opcional - Remover em produção)
+-- ================================================
+
+-- Inserir funcionário de teste
+-- Senha: 123456
+INSERT INTO `funcionarios` (`nome`, `email`, `senha`, `foto`) VALUES
+('Carlos Silva', 'funcionario@burger.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL);
+
+-- ================================================
+-- PERMISSÕES (Ajustar conforme necessário)
+-- ================================================
+
+-- Garantir que o usuário MySQL tem permissões
+-- GRANT ALL PRIVILEGES ON burger_house.* TO 'root'@'localhost';
+-- FLUSH PRIVILEGES;
+
+-- ================================================
+-- COMMIT
+-- ================================================
+COMMIT;
+
+-- ================================================
+-- VERIFICAÇÃO FINAL
+-- ================================================
+
+-- Verificar todas as tabelas criadas
+SHOW TABLES;
+
+-- Verificar estrutura das tabelas principais
+DESCRIBE usuarios;
+DESCRIBE funcionarios;
+DESCRIBE produtos;
+DESCRIBE produtos_especiais;
+DESCRIBE pedidos;
+DESCRIBE carrinho;
+
+-- ================================================
+-- FIM DO SCRIPT
+-- ================================================
+
+SELECT 'Banco de dados BURGER HOUSE criado com sucesso!' AS Status;
