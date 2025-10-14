@@ -3,6 +3,7 @@ session_start();
 include "config.php";
 
 $msg = "";
+$msg_tipo = "erro"; // Novo: tipo da mensagem
 
 // --- Login ---
 if (isset($_POST['acao']) && $_POST['acao'] == "login") {
@@ -27,6 +28,7 @@ if (isset($_POST['acao']) && $_POST['acao'] == "login") {
         exit;
     } else {
         $msg = "Email ou senha incorretos!";
+        $msg_tipo = "erro";
     }
 }
 
@@ -44,11 +46,13 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
 
     if ($res->num_rows > 0) {
         $msg = "Email já cadastrado!";
+        $msg_tipo = "erro";
     } else {
         $stmt = $conn->prepare("INSERT INTO usuarios (nome,email,senha,tipo) VALUES (?,?,?,?)");
         $stmt->bind_param("ssss", $nome, $email, $senha, $tipo);
         $stmt->execute();
         $msg = "Cadastro realizado com sucesso! Faça login.";
+        $msg_tipo = "sucesso"; // Novo: sucesso
     }
 }
 ?>
@@ -66,8 +70,9 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
 <body>
     <div class="container">
         <h1>Sistema de Acesso</h1>
-        <?php if ($msg)
-            echo "<p class='msg'>$msg</p>"; ?>
+        <?php if ($msg): ?>
+            <p class='msg <?= $msg_tipo == "sucesso" ? "msg-sucesso" : "" ?>'><?= $msg ?></p>
+        <?php endif; ?>
 
         <div class="forms">
             <!-- LOGIN -->
@@ -104,19 +109,13 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
             const cadastroForm = document.querySelector('.form-cadastro');
 
             if (loginForm.classList.contains('active')) {
-                // anima o login saindo para a esquerda
                 loginForm.classList.remove('active');
                 loginForm.classList.add('slide-out-left');
-
-                // anima o cadastro entrando
                 cadastroForm.classList.remove('slide-out-right');
                 cadastroForm.classList.add('active');
             } else {
-                // anima o cadastro saindo para a direita
                 cadastroForm.classList.remove('active');
                 cadastroForm.classList.add('slide-out-right');
-
-                // anima o login entrando
                 loginForm.classList.remove('slide-out-left');
                 loginForm.classList.add('active');
             }

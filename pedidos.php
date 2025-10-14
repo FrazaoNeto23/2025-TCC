@@ -28,13 +28,7 @@ if (isset($_GET['entregue'])) {
     exit;
 }
 
-// Limpar pedidos entregues com mais de 15 minutos
-if (isset($_POST['limpar_antigos'])) {
-    $stmt = $conn->prepare("DELETE FROM pedidos WHERE status='Entregue' AND data < (NOW() - INTERVAL 15 MINUTE)");
-    $stmt->execute();
-    header("Location: pedidos.php");
-    exit;
-}
+// REMOVIDO: Código do botão "limpar_antigos"
 
 // Filtros
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : 'todos';
@@ -49,6 +43,18 @@ if ($filtro_pagamento != 'todos') {
 }
 
 $where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";
+
+// Adicionar filtro automático para esconder pedidos entregues E pagos
+if (empty($where_clauses)) {
+    // Se não há filtros aplicados, mostrar apenas pedidos ativos
+    $where_sql = "WHERE NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
+} else {
+    // Se há filtros, adicionar condição para esconder pedidos finalizados (exceto se filtrar por "Entregue")
+    if ($filtro_status != 'Entregue') {
+        $where_clauses[] = "NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
+        $where_sql = "WHERE " . implode(" AND ", $where_clauses);
+    }
+}
 
 // Busca pedidos com informações do cliente e produto
 $pedidos = $conn->query("
@@ -153,7 +159,7 @@ $stats = $conn->query("
             </div>
         </div>
 
-        <!-- Filtros e Ações -->
+        <!-- Filtros (SEM BOTÃO LIMPAR) -->
         <div class="filtros-container">
             <div class="filtros">
                 <label><i class="fa fa-filter"></i> Filtrar por Status:</label>
@@ -162,7 +168,8 @@ $stats = $conn->query("
                     <option value="Pendente" <?= $filtro_status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
                     <option value="Em preparo" <?= $filtro_status == 'Em preparo' ? 'selected' : '' ?>>Em Preparo</option>
                     <option value="Entregando" <?= $filtro_status == 'Entregando' ? 'selected' : '' ?>>Entregando</option>
-                    <option value="Entregue" <?= $filtro_status == 'Entregue' ? 'selected' : '' ?>>Entregue</option>
+                    <option value="Entregue" <?= $filtro_status == 'Entregue' ? 'selected' : '' ?>>Entregue (Histórico)
+                    </option>
                 </select>
 
                 <label><i class="fa fa-credit-card"></i> Pagamento:</label>
@@ -173,14 +180,18 @@ $stats = $conn->query("
                     <option value="Pago" <?= $filtro_pagamento == 'Pago' ? 'selected' : '' ?>>Pago</option>
                 </select>
             </div>
-
-            <form method="post" class="form-limpar">
-                <button type="submit" name="limpar_antigos" class="btn-limpar"
-                    onclick="return confirm('Limpar pedidos entregues há mais de 15 minutos?')">
-                    <i class="fa fa-broom"></i> Limpar Antigos
-                </button>
-            </form>
+            <!-- BOTÃO "LIMPAR ANTIGOS" FOI REMOVIDO -->
         </div>
+
+        <!-- Info sobre pedidos ocultos -->
+        <?php if ($filtro_status != 'Entregue'): ?>
+            <div
+                style="background: #1e1e1e; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00cc55; color: #00cc55; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-info-circle"></i>
+                <span>Pedidos entregues e pagos estão ocultos automaticamente. Para ver histórico completo, selecione
+                    "Entregue (Histórico)" no filtro de status.</span>
+            </div>
+        <?php endif; ?>
 
         <!-- Grid de Pedidos -->
         <div class="pedidos-grid">

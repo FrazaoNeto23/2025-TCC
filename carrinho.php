@@ -24,7 +24,7 @@ if (isset($_POST['atualizar_qtd'])) {
     $id_carrinho = intval($_POST['id_carrinho']);
     $quantidade = intval($_POST['quantidade']);
 
-    if ($quantidade > 0) {
+    if ($quantidade > 0 && $quantidade <= 99) {
         $stmt = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=? AND id_cliente=?");
         $stmt->bind_param("iii", $quantidade, $id_carrinho, $id_cliente);
         $stmt->execute();
@@ -119,17 +119,14 @@ $total_itens = 0;
                             </div>
 
                             <div class="item-acoes">
-                                <form method="POST" class="form-quantidade">
+                                <form method="POST" class="form-quantidade" data-id="<?= $item['id'] ?>">
                                     <input type="hidden" name="id_carrinho" value="<?= $item['id'] ?>">
                                     <div class="qtd-control">
                                         <button type="button" onclick="diminuir(this)"><i class="fa fa-minus"></i></button>
                                         <input type="number" name="quantidade" value="<?= $item['quantidade'] ?>" min="1"
-                                            max="99" readonly>
+                                            max="99">
                                         <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
                                     </div>
-                                    <button type="submit" name="atualizar_qtd" class="btn-atualizar">
-                                        <i class="fa fa-sync"></i> Atualizar
-                                    </button>
                                 </form>
 
                                 <div class="item-subtotal">
@@ -169,16 +166,16 @@ $total_itens = 0;
                         <strong>R$ <?= number_format($total_carrinho, 2, ',', '.') ?></strong>
                     </div>
 
-                    <form method="POST" action="finalizar_carrinho.php" class="form-mesa">
+                    <form method="GET" action="finalizar_carrinho.php" class="form-mesa" id="form-finalizar">
                         <label for="numero_mesa"><i class="fa fa-table"></i> Número da Mesa (opcional):</label>
                         <input type="number" name="numero_mesa" id="numero_mesa" placeholder="Digite o número da mesa"
                             min="1" max="999">
                         <small>Deixe em branco para delivery</small>
                     </form>
 
-                    <a href="finalizar_carrinho.php" class="btn-finalizar">
+                    <button type="submit" form="form-finalizar" class="btn-finalizar">
                         <i class="fa fa-check-circle"></i> Finalizar Pedido
-                    </a>
+                    </button>
 
                     <a href="?limpar=1" class="btn-limpar-carrinho" onclick="return confirm('Limpar todo o carrinho?')">
                         <i class="fa fa-broom"></i> Limpar Carrinho
@@ -198,30 +195,77 @@ $total_itens = 0;
     </div>
 
     <script>
+        let timeoutId;
+
+        function atualizarQuantidade(form) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const input = form.querySelector('input[name="atualizar_qtd"]');
+                if (!input) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'atualizar_qtd';
+                    hiddenInput.value = '1';
+                    form.appendChild(hiddenInput);
+                }
+                form.submit();
+            }, 800);
+        }
+
         function aumentar(btn) {
-            const input = btn.parentElement.querySelector('input[type="number"]');
-            if (input.value < 99) {
-                input.value = parseInt(input.value) + 1;
+            const form = btn.closest('.form-quantidade');
+            const input = form.querySelector('input[type="number"]');
+            let valor = Number(input.value);
+            if (valor < 99) {
+                input.value = valor + 1;
+                atualizarQuantidade(form);
             }
         }
 
         function diminuir(btn) {
-            const input = btn.parentElement.querySelector('input[type="number"]');
-            if (input.value > 1) {
-                input.value = parseInt(input.value) - 1;
+            const form = btn.closest('.form-quantidade');
+            const input = form.querySelector('input[type="number"]');
+            let valor = Number(input.value);
+            if (valor > 1) {
+                input.value = valor - 1;
+                atualizarQuantidade(form);
             }
         }
 
-        // Salvar número da mesa no localStorage
+        // Prevenir scroll no input number
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.qtd-control input[type="number"]').forEach(input => {
+                // Prevenir scroll do mouse
+                input.addEventListener('wheel', function (e) {
+                    e.preventDefault();
+                });
+
+                // Garantir que o valor seja numérico
+                input.addEventListener('input', function () {
+                    if (this.value === '') {
+                        this.value = 1;
+                    }
+                    let val = parseInt(this.value);
+                    if (isNaN(val) || val < 1) {
+                        this.value = 1;
+                    } else if (val > 99) {
+                        this.value = 99;
+                    }
+
+                    const form = this.closest('.form-quantidade');
+                    atualizarQuantidade(form);
+                });
+            });
+        });
+
+        // Salvar número da mesa
         const mesaInput = document.getElementById('numero_mesa');
         if (mesaInput) {
-            // Carregar valor salvo
             const mesaSalva = localStorage.getItem('numero_mesa');
             if (mesaSalva) {
                 mesaInput.value = mesaSalva;
             }
 
-            // Salvar ao digitar
             mesaInput.addEventListener('input', function () {
                 if (this.value) {
                     localStorage.setItem('numero_mesa', this.value);

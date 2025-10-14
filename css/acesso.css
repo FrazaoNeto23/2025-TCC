@@ -99,7 +99,7 @@ h1 {
     }
 }
 
-/* Mensagens */
+/* Mensagens - ERRO (vermelho) */
 .msg {
     background: linear-gradient(135deg, #ff4c4c, #e53939);
     padding: 12px;
@@ -110,6 +110,12 @@ h1 {
     z-index: 1;
     box-shadow: 0 4px 15px rgba(255, 76, 76, 0.4);
     animation: slideInDown 0.4s ease-out;
+}
+
+/* Mensagens - SUCESSO (verde) */
+.msg.msg-sucesso {
+    background: linear-gradient(135deg, #00cc55, #009944);
+    box-shadow: 0 4px 15px rgba(0, 204, 85, 0.4);
 }
 
 @keyframes slideInDown {
@@ -292,19 +298,6 @@ html {
 @supports (min-height: 100dvh) {
     body {
         min-height: 100dvh;
-    }
-}
-
-/* Efeito de partículas (opcional - adiciona movimento sutil) */
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-
-    50% {
-        transform: translateY(-20px) rotate(180deg);
     }
 }
 
