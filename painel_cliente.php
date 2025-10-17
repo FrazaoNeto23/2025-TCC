@@ -10,6 +10,16 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 $msg = "";
 $id_cliente = $_SESSION['id_usuario'];
 
+// ===== VERIFICAR E ADICIONAR COLUNA OBSERVACOES SE NÃO EXISTIR =====
+$check_column = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'observacoes'");
+if ($check_column->num_rows == 0) {
+    try {
+        $conn->query("ALTER TABLE pedidos ADD COLUMN observacoes TEXT AFTER metodo_pagamento");
+    } catch (Exception $e) {
+        // Ignorar se der erro
+    }
+}
+
 // ===== SISTEMA DE RESET AUTOMÁTICO =====
 if (!isset($_SESSION['reset_verificado_hoje'])) {
     $hoje = date('Y-m-d');
@@ -149,8 +159,8 @@ $produtos = $conn->query("SELECT * FROM produtos ORDER BY nome");
 // Buscar produtos especiais
 $produtos_especiais = $conn->query("SELECT * FROM produtos_especiais ORDER BY nome");
 
-// Buscar pedidos do cliente (com numeração nova)
-$pedidos = $conn->query("
+// Buscar pedidos do cliente (com verificação da coluna observacoes)
+$pedidos_query = "
     SELECT pedidos.*, 
            CASE 
                WHEN pedidos.tipo_produto = 'normal' THEN produtos.nome
@@ -166,7 +176,9 @@ $pedidos = $conn->query("
     LEFT JOIN produtos_especiais ON pedidos.id_produto = produtos_especiais.id AND pedidos.tipo_produto = 'especial'
     WHERE pedidos.id_cliente = $id_cliente
     ORDER BY pedidos.data DESC
-");
+";
+
+$pedidos = $conn->query($pedidos_query);
 
 // Contar itens no carrinho
 $count_carrinho = $conn->query("
@@ -263,6 +275,66 @@ $count_carrinho = $conn->query("
             display: inline-block;
             margin-bottom: 10px;
         }
+
+        .btn-carrinho {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #0ff, #00d4d4);
+            color: #121212;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn-carrinho:hover {
+            background: linear-gradient(135deg, #00d4d4, #0ff);
+            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .carrinho-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4c4c;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .btn-add-carrinho {
+            background: linear-gradient(135deg, #0ff, #00d4d4);
+            color: #121212;
+        }
+
+        .btn-add-carrinho:hover {
+            background: linear-gradient(135deg, #00d4d4, #0ff);
+            box-shadow: 0 0 15px #0ff;
+        }
     </style>
 </head>
 
@@ -289,7 +361,7 @@ $count_carrinho = $conn->query("
         <?php endif; ?>
 
         <!-- Produtos Especiais -->
-        <?php if ($produtos_especiais->num_rows > 0): ?>
+        <?php if ($produtos_especiais && $produtos_especiais->num_rows > 0): ?>
             <h2><i class="fa fa-star"></i> Cardápio Especial</h2>
             <div class="produtos produtos-especiais">
                 <?php while ($pe = $produtos_especiais->fetch_assoc()): ?>
@@ -299,8 +371,8 @@ $count_carrinho = $conn->query("
                         <?php else: ?>
                             <div class="sem-imagem"><i class="fa fa-star"></i></div>
                         <?php endif; ?>
-                        <h3><?= $pe['nome'] ?></h3>
-                        <p class="descricao"><?= $pe['descricao'] ?></p>
+                        <h3><?= htmlspecialchars($pe['nome']) ?></h3>
+                        <p class="descricao"><?= htmlspecialchars($pe['descricao'] ?? '') ?></p>
                         <p class="preco">R$ <?= number_format($pe['preco'], 2, ',', '.') ?></p>
 
                         <form method="POST">
@@ -323,36 +395,40 @@ $count_carrinho = $conn->query("
         <!-- Produtos Normais -->
         <h2><i class="fa fa-utensils"></i> Cardápio</h2>
         <div class="produtos">
-            <?php while ($p = $produtos->fetch_assoc()): ?>
-                <div class="produto">
-                    <?php if ($p['imagem'] && file_exists("uploads/" . $p['imagem'])): ?>
-                        <img src="uploads/<?= $p['imagem'] ?>" alt="<?= $p['nome'] ?>">
-                    <?php else: ?>
-                        <div class="sem-imagem"><i class="fa fa-image"></i></div>
-                    <?php endif; ?>
-                    <h3><?= $p['nome'] ?></h3>
-                    <p class="descricao"><?= $p['descricao'] ?></p>
-                    <p class="preco">R$ <?= number_format($p['preco'], 2, ',', '.') ?></p>
+            <?php if ($produtos && $produtos->num_rows > 0): ?>
+                <?php while ($p = $produtos->fetch_assoc()): ?>
+                    <div class="produto">
+                        <?php if ($p['imagem'] && file_exists("uploads/" . $p['imagem'])): ?>
+                            <img src="uploads/<?= $p['imagem'] ?>" alt="<?= $p['nome'] ?>">
+                        <?php else: ?>
+                            <div class="sem-imagem"><i class="fa fa-image"></i></div>
+                        <?php endif; ?>
+                        <h3><?= htmlspecialchars($p['nome']) ?></h3>
+                        <p class="descricao"><?= htmlspecialchars($p['descricao'] ?? '') ?></p>
+                        <p class="preco">R$ <?= number_format($p['preco'], 2, ',', '.') ?></p>
 
-                    <form method="POST">
-                        <input type="hidden" name="id_produto" value="<?= $p['id'] ?>">
-                        <input type="hidden" name="tipo_produto" value="normal">
-                        <div class="qtd-control">
-                            <button type="button" onclick="diminuir(this)"><i class="fa fa-minus"></i></button>
-                            <input type="number" name="quantidade" value="1" min="1" max="99" readonly>
-                            <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
-                        </div>
-                        <button type="submit" name="adicionar_carrinho" class="btn-comprar btn-add-carrinho">
-                            <i class="fa fa-cart-plus"></i> Adicionar ao Carrinho
-                        </button>
-                    </form>
-                </div>
-            <?php endwhile; ?>
+                        <form method="POST">
+                            <input type="hidden" name="id_produto" value="<?= $p['id'] ?>">
+                            <input type="hidden" name="tipo_produto" value="normal">
+                            <div class="qtd-control">
+                                <button type="button" onclick="diminuir(this)"><i class="fa fa-minus"></i></button>
+                                <input type="number" name="quantidade" value="1" min="1" max="99" readonly>
+                                <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
+                            </div>
+                            <button type="submit" name="adicionar_carrinho" class="btn-comprar btn-add-carrinho">
+                                <i class="fa fa-cart-plus"></i> Adicionar ao Carrinho
+                            </button>
+                        </form>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <p>Nenhum produto disponível no momento.</p>
+            <?php endif; ?>
         </div>
 
         <h2><i class="fa fa-receipt"></i> Meus Pedidos</h2>
 
-        <?php if ($pedidos->num_rows > 0): ?>
+        <?php if ($pedidos && $pedidos->num_rows > 0): ?>
             <div class="pedidos-lista">
                 <?php while ($pd = $pedidos->fetch_assoc()):
                     $status_class = '';
@@ -392,7 +468,7 @@ $count_carrinho = $conn->query("
                                 <img src="uploads/<?= $pd['imagem'] ?>" alt="<?= $pd['produto_nome'] ?>" class="pedido-img">
                             <?php endif; ?>
                             <div class="pedido-detalhes">
-                                <h3><?= $pd['produto_nome'] ?></h3>
+                                <h3><?= htmlspecialchars($pd['produto_nome'] ?? 'Produto não encontrado') ?></h3>
                                 <?php if ($pd['numero_mesa']): ?>
                                     <p><i class="fa fa-table"></i> Mesa: <?= $pd['numero_mesa'] ?></p>
                                 <?php else: ?>
@@ -402,8 +478,13 @@ $count_carrinho = $conn->query("
                                 <p class="pedido-total">
                                     <i class="fa fa-dollar-sign"></i> Total: R$ <?= number_format($pd['total'], 2, ',', '.') ?>
                                 </p>
-                                <?php if ($pd['observacoes']): ?>
-                                    <p><i class="fa fa-comment"></i> <?= htmlspecialchars($pd['observacoes']) ?></p>
+
+                                <?php
+                                // Verificar se a coluna observacoes existe e tem conteúdo
+                                $observacoes = isset($pd['observacoes']) ? $pd['observacoes'] : null;
+                                if ($observacoes):
+                                    ?>
+                                    <p><i class="fa fa-comment"></i> <?= htmlspecialchars($observacoes) ?></p>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -476,69 +557,6 @@ $count_carrinho = $conn->query("
             }
         });
     </script>
-
-    <!-- CSS específico para o carrinho badge -->
-    <style>
-        .btn-carrinho {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: 0.3s;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
-        }
-
-        .btn-carrinho:hover {
-            background: linear-gradient(135deg, #00d4d4, #0ff);
-            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6);
-            transform: translateY(-2px);
-        }
-
-        .carrinho-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ff4c4c;
-            color: #fff;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        .btn-add-carrinho {
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-        }
-
-        .btn-add-carrinho:hover {
-            background: linear-gradient(135deg, #00d4d4, #0ff);
-            box-shadow: 0 0 15px #0ff;
-        }
-    </style>
 </body>
 
 </html>
