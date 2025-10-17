@@ -9,10 +9,22 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 
 $id_cliente = $_SESSION['id_usuario'];
 
+// ===== VERIFICAR E ADICIONAR COLUNAS SE NÃO EXISTIREM =====
+$check_numero = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'numero_pedido'");
+if ($check_numero->num_rows == 0) {
+    $conn->query("ALTER TABLE pedidos ADD COLUMN numero_pedido VARCHAR(20) AFTER id");
+    $conn->query("ALTER TABLE pedidos ADD INDEX idx_numero_pedido (numero_pedido)");
+}
+
+$check_obs = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'observacoes'");
+if ($check_obs->num_rows == 0) {
+    $conn->query("ALTER TABLE pedidos ADD COLUMN observacoes TEXT AFTER metodo_pagamento");
+}
+
 // ===== FUNÇÃO PARA GERAR NUMERAÇÃO SEQUENCIAL =====
 function gerarNumeroSequencial($conn)
 {
-    $prefixo = date('Ymd'); // Ex: 20241017
+    $prefixo = date('Ymd'); // Ex: 20251017
 
     $stmt = $conn->prepare("
         SELECT MAX(CAST(SUBSTRING_INDEX(numero_pedido, '-', -1) AS UNSIGNED)) as ultimo_numero
@@ -28,133 +40,120 @@ function gerarNumeroSequencial($conn)
     $proximo_numero = ($resultado['ultimo_numero'] ?? 0) + 1;
 
     return $prefixo . '-' . str_pad($proximo_numero, 3, '0', STR_PAD_LEFT);
-    // Retorna: 20241017-001, 20241017-002, etc.
 }
 
-// ===== FUNÇÃO PARA CRIAR PEDIDO COM NUMERAÇÃO =====
-function criarPedidoComNumeracao($conn, $dados)
-{
-    $numero_pedido = gerarNumeroSequencial($conn);
-
-    $stmt = $conn->prepare("
-        INSERT INTO pedidos 
-        (numero_pedido, id_cliente, numero_mesa, id_produto, tipo_produto, quantidade, total, status, status_pagamento, metodo_pagamento, observacoes) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', 'Pago', ?, ?)
-    ");
-
-    $stmt->bind_param(
-        "siisisdsss",
-        $numero_pedido,
-        $dados['id_cliente'],
-        $dados['numero_mesa'],
-        $dados['id_produto'],
-        $dados['tipo_produto'],
-        $dados['quantidade'],
-        $dados['total'],
-        $dados['metodo_pagamento'],
-        $dados['observacoes']
-    );
-
-    if ($stmt->execute()) {
-        return $numero_pedido;
-    }
-
-    return false;
-}
-
-// Processar pagamento
+// ===== PROCESSAR PAGAMENTO =====
 if (isset($_POST['processar_pagamento'])) {
-    $metodo = $_POST['metodo_pagamento'];
+    $metodo = $_POST['metodo_pagamento'] ?? '';
     $numero_mesa = isset($_POST['numero_mesa']) && $_POST['numero_mesa'] ? intval($_POST['numero_mesa']) : null;
 
-    // Buscar itens do carrinho
-    $itens = $conn->query("
-        SELECT carrinho.*, 
-               CASE 
-                   WHEN carrinho.tipo_produto = 'normal' THEN produtos.preco
-                   WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.preco
-               END as produto_preco,
-               CASE 
-                   WHEN carrinho.tipo_produto = 'normal' THEN produtos.nome
-                   WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.nome
-               END as produto_nome
-        FROM carrinho
-        LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
-        LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
-        WHERE carrinho.id_cliente = $id_cliente
-    ");
-
-    if ($itens->num_rows > 0) {
-        $pedidos_criados = [];
-        $total_geral = 0;
-
-        try {
-            $conn->begin_transaction();
-
-            // Criar pedidos para cada item do carrinho
-            while ($item = $itens->fetch_assoc()) {
-                $total = $item['produto_preco'] * $item['quantidade'];
-                $total_geral += $total;
-
-                $observacoes = "Pagamento via " . $metodo . " - Produto: " . $item['produto_nome'];
-
-                $dados_pedido = [
-                    'id_cliente' => $id_cliente,
-                    'numero_mesa' => $numero_mesa,
-                    'id_produto' => $item['id_produto'],
-                    'tipo_produto' => $item['tipo_produto'],
-                    'quantidade' => $item['quantidade'],
-                    'total' => $total,
-                    'metodo_pagamento' => $metodo,
-                    'observacoes' => $observacoes
-                ];
-
-                $numero_pedido = criarPedidoComNumeracao($conn, $dados_pedido);
-
-                if ($numero_pedido) {
-                    $pedidos_criados[] = $numero_pedido;
-                } else {
-                    throw new Exception("Erro ao criar pedido para " . $item['produto_nome']);
-                }
-            }
-
-            // Limpar carrinho
-            $conn->query("DELETE FROM carrinho WHERE id_cliente = $id_cliente");
-
-            // Registrar transação
-            $transacao_id = 'TXN_' . time() . '_' . $id_cliente;
-            $stmt = $conn->prepare("
-                INSERT INTO system_logs (tipo, nivel, status, mensagem, dados) 
-                VALUES ('pagamento', 'INFO', 'sucesso', 'Pagamento processado', ?)
-            ");
-
-            $dados_transacao = json_encode([
-                'transacao_id' => $transacao_id,
-                'cliente_id' => $id_cliente,
-                'metodo' => $metodo,
-                'total' => $total_geral,
-                'pedidos' => $pedidos_criados,
-                'numero_mesa' => $numero_mesa
-            ]);
-
-            $stmt->bind_param("s", $dados_transacao);
-            $stmt->execute();
-
-            $conn->commit();
-
-            // Mensagem de sucesso
-            $pedidos_lista = implode(', #', $pedidos_criados);
-            $_SESSION['pagamento_sucesso'] = "🎉 Pagamento realizado com sucesso! Pedidos criados: #$pedidos_lista";
-
-            header("Location: painel_cliente.php");
-            exit;
-
-        } catch (Exception $e) {
-            $conn->rollback();
-            $erro = "Erro ao processar pagamento: " . $e->getMessage();
-        }
+    if (empty($metodo)) {
+        $erro = "Por favor, selecione um método de pagamento!";
     } else {
-        $erro = "Carrinho vazio!";
+        // Buscar itens do carrinho
+        $itens = $conn->query("
+            SELECT carrinho.*, 
+                   CASE 
+                       WHEN carrinho.tipo_produto = 'normal' THEN produtos.preco
+                       WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.preco
+                   END as produto_preco,
+                   CASE 
+                       WHEN carrinho.tipo_produto = 'normal' THEN produtos.nome
+                       WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.nome
+                   END as produto_nome
+            FROM carrinho
+            LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
+            LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
+            WHERE carrinho.id_cliente = $id_cliente
+        ");
+
+        if ($itens->num_rows > 0) {
+            $pedidos_criados = [];
+            $total_geral = 0;
+
+            try {
+                $conn->begin_transaction();
+
+                // Gerar um único número para todos os itens deste pedido
+                $numero_pedido = gerarNumeroSequencial($conn);
+
+                // Criar pedidos para cada item do carrinho
+                while ($item = $itens->fetch_assoc()) {
+                    $total = $item['produto_preco'] * $item['quantidade'];
+                    $total_geral += $total;
+
+                    $observacoes = "Pagamento via " . $metodo . " - Produto: " . $item['produto_nome'];
+
+                    $stmt = $conn->prepare("
+                        INSERT INTO pedidos 
+                        (numero_pedido, id_cliente, numero_mesa, id_produto, tipo_produto, quantidade, total, status, status_pagamento, metodo_pagamento, observacoes) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', 'Pago', ?, ?)
+                    ");
+
+                    $stmt->bind_param(
+                        "siisisdsss",
+                        $numero_pedido,
+                        $id_cliente,
+                        $numero_mesa,
+                        $item['id_produto'],
+                        $item['tipo_produto'],
+                        $item['quantidade'],
+                        $total,
+                        $metodo,
+                        $observacoes
+                    );
+
+                    if (!$stmt->execute()) {
+                        throw new Exception("Erro ao criar pedido: " . $stmt->error);
+                    }
+
+                    $pedidos_criados[] = $conn->insert_id;
+                }
+
+                // Limpar carrinho
+                $conn->query("DELETE FROM carrinho WHERE id_cliente = $id_cliente");
+
+                // Registrar transação no log
+                $transacao_id = 'TXN_' . time() . '_' . $id_cliente;
+                $stmt = $conn->prepare("
+                    INSERT INTO system_logs (tipo, nivel, status, mensagem, dados) 
+                    VALUES ('pagamento', 'INFO', 'sucesso', 'Pagamento processado', ?)
+                ");
+
+                $dados_transacao = json_encode([
+                    'transacao_id' => $transacao_id,
+                    'cliente_id' => $id_cliente,
+                    'metodo' => $metodo,
+                    'total' => $total_geral,
+                    'numero_pedido' => $numero_pedido,
+                    'pedidos_ids' => $pedidos_criados,
+                    'numero_mesa' => $numero_mesa,
+                    'timestamp' => time()
+                ]);
+
+                $stmt->bind_param("s", $dados_transacao);
+                $stmt->execute();
+
+                $conn->commit();
+
+                // Mensagem de sucesso personalizada
+                if ($numero_mesa) {
+                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Em breve será servido na mesa $numero_mesa.";
+                } else {
+                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Em breve estará na sua casa. Obrigado pela preferência!";
+                }
+
+                header("Location: painel_cliente.php");
+                exit;
+
+            } catch (Exception $e) {
+                $conn->rollback();
+                $erro = "Erro ao processar pagamento: " . $e->getMessage();
+                error_log("Erro finalizar_carrinho.php: " . $e->getMessage());
+            }
+        } else {
+            $erro = "Carrinho vazio!";
+        }
     }
 }
 
@@ -228,30 +227,6 @@ $proximo_numero = gerarNumeroSequencial($conn);
             }
         }
 
-        .metodo-pix {
-            border-color: #00cc55;
-        }
-
-        .metodo-cartao {
-            border-color: #2196f3;
-        }
-
-        .metodo-dinheiro {
-            border-color: #ff9800;
-        }
-
-        .metodo-pix.selected {
-            background: rgba(0, 204, 85, 0.1);
-        }
-
-        .metodo-cartao.selected {
-            background: rgba(33, 150, 243, 0.1);
-        }
-
-        .metodo-dinheiro.selected {
-            background: rgba(255, 152, 0, 0.1);
-        }
-
         .erro-msg {
             background: #ff4c4c;
             color: white;
@@ -279,6 +254,13 @@ $proximo_numero = gerarNumeroSequencial($conn);
                 transform: translateX(5px);
             }
         }
+
+        .item-resumo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -288,9 +270,8 @@ $proximo_numero = gerarNumeroSequencial($conn);
 
         <h1><i class="fa fa-credit-card"></i> Finalizar Pedido</h1>
 
-        <!-- Preview do próximo número -->
         <div class="preview-numero">
-            <i class="fa fa-hashtag"></i> Seu próximo pedido será: <strong>#<?= $proximo_numero ?></strong>
+            <i class="fa fa-hashtag"></i> Seu pedido será: <strong>#<?= $proximo_numero ?></strong>
         </div>
 
         <?php if (isset($erro)): ?>
@@ -306,9 +287,9 @@ $proximo_numero = gerarNumeroSequencial($conn);
                 <div class="item-resumo">
                     <?php if ($item['produto_imagem'] && file_exists("uploads/" . $item['produto_imagem'])): ?>
                         <img src="uploads/<?= $item['produto_imagem'] ?>" alt="<?= $item['produto_nome'] ?>"
-                            style="width: 50px; height: 50px; border-radius: 8px; margin-right: 10px;">
+                            style="width: 50px; height: 50px; border-radius: 8px;">
                     <?php endif; ?>
-                    <div>
+                    <div style="flex: 1;">
                         <strong><?= htmlspecialchars($item['produto_nome']) ?></strong>
                         <?php if ($item['tipo_produto'] == 'especial'): ?>
                             <span
@@ -316,10 +297,10 @@ $proximo_numero = gerarNumeroSequencial($conn);
                                 ESPECIAL</span>
                         <?php endif; ?>
                         <br>
-                        <span>Qtd: <?= $item['quantidade'] ?> × R$
+                        <span style="color: #aaa;">Qtd: <?= $item['quantidade'] ?> × R$
                             <?= number_format($item['produto_preco'], 2, ',', '.') ?></span>
                         <br>
-                        <strong>Subtotal: R$
+                        <strong style="color: #0ff;">Subtotal: R$
                             <?= number_format($item['produto_preco'] * $item['quantidade'], 2, ',', '.') ?></strong>
                     </div>
                 </div>
@@ -332,7 +313,6 @@ $proximo_numero = gerarNumeroSequencial($conn);
             <h2><i class="fa fa-payment"></i> Escolha o método de pagamento</h2>
 
             <form method="POST" id="payment-form">
-                <!-- Campo mesa -->
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label for="numero_mesa"
                         style="display: block; color: #0ff; font-weight: bold; margin-bottom: 10px;">
@@ -344,55 +324,41 @@ $proximo_numero = gerarNumeroSequencial($conn);
                     <small style="color: #aaa; display: block; margin-top: 5px;">Deixe em branco para delivery</small>
                 </div>
 
-                <!-- Métodos de pagamento -->
-                <div class="metodo-card metodo-pix" onclick="selecionarMetodo('pix')">
+                <div class="metodo-card" onclick="selecionarMetodo('pix')">
                     <input type="radio" name="metodo_pagamento" id="pix" value="pix" required>
                     <label for="pix">
                         <i class="fa fa-qrcode"></i>
                         <span>PIX</span>
-                        <small>Aprovação instantânea</small>
                     </label>
                 </div>
 
-                <div class="metodo-card metodo-cartao" onclick="selecionarMetodo('cartao')">
+                <div class="metodo-card" onclick="selecionarMetodo('cartao')">
                     <input type="radio" name="metodo_pagamento" id="cartao" value="cartao" required>
                     <label for="cartao">
                         <i class="fa fa-credit-card"></i>
                         <span>Cartão de Crédito</span>
-                        <small>Seguro e confiável</small>
                     </label>
                 </div>
 
-                <div class="metodo-card metodo-dinheiro" onclick="selecionarMetodo('dinheiro')">
+                <div class="metodo-card" onclick="selecionarMetodo('dinheiro')">
                     <input type="radio" name="metodo_pagamento" id="dinheiro" value="dinheiro" required>
                     <label for="dinheiro">
                         <i class="fa fa-money-bill"></i>
                         <span>Dinheiro</span>
-                        <small>Pagamento na entrega</small>
                     </label>
                 </div>
 
-                <!-- Áreas específicas -->
                 <div id="area-pix" class="area-pagamento" style="display:none;">
                     <h3><i class="fa fa-qrcode"></i> Pagamento via PIX</h3>
                     <div class="pix-info">
-                        <p><i class="fa fa-info-circle"></i> Após confirmar, você receberá as instruções de pagamento
-                        </p>
-                        <div style="display: flex; gap: 15px; margin: 15px 0;">
-                            <span style="color: #00cc55;"><i class="fa fa-check"></i> Aprovação instantânea</span>
-                            <span style="color: #00cc55;"><i class="fa fa-check"></i> Sem taxas</span>
-                            <span style="color: #00cc55;"><i class="fa fa-check"></i> 100% seguro</span>
-                        </div>
+                        <p><i class="fa fa-info-circle"></i> Sistema demonstrativo - pedido será criado como pago</p>
                     </div>
                 </div>
 
                 <div id="area-cartao" class="area-pagamento" style="display:none;">
                     <h3><i class="fa fa-credit-card"></i> Dados do Cartão</h3>
                     <div style="background: #2a2a2a; padding: 20px; border-radius: 10px;">
-                        <p><i class="fa fa-info-circle"></i> Em um sistema real, aqui seria integrado com gateway de
-                            pagamento (PagSeguro, Mercado Pago, etc.)</p>
-                        <p style="margin-top: 10px; color: #aaa;">Por ora, o pedido será criado como "pago" para
-                            demonstração.</p>
+                        <p><i class="fa fa-info-circle"></i> Sistema demonstrativo - pedido será criado como pago</p>
                     </div>
                 </div>
 
@@ -400,13 +366,10 @@ $proximo_numero = gerarNumeroSequencial($conn);
                     <h3><i class="fa fa-money-bill"></i> Pagamento em Dinheiro</h3>
                     <div style="background: #2a2a2a; padding: 20px; border-radius: 10px;">
                         <p><i class="fa fa-motorcycle"></i> Você pagará na entrega</p>
-                        <p style="margin-top: 10px; color: #aaa;">O entregador levará o troco se necessário.</p>
                     </div>
                 </div>
 
-                <button type="submit" name="processar_pagamento" id="btn-confirmar"
-                    style="width: 100%; padding: 18px; background: linear-gradient(135deg, #00cc55, #009944); color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: all 0.3s;"
-                    disabled>
+                <button href="painel_cliente.php" type="submit" name="processar_pagamento" id="btn-confirmar" disabled>
                     <i class="fa fa-check"></i> Confirmar Pagamento - R$
                     <?= number_format($total_carrinho, 2, ',', '.') ?>
                 </button>
@@ -415,13 +378,11 @@ $proximo_numero = gerarNumeroSequencial($conn);
     </div>
 
     <script>
-        // Recuperar mesa salva
         const mesaSalva = localStorage.getItem('numero_mesa');
         if (mesaSalva) {
             document.getElementById('numero_mesa').value = mesaSalva;
         }
 
-        // Salvar mesa quando digitada
         document.getElementById('numero_mesa').addEventListener('input', function () {
             if (this.value) {
                 localStorage.setItem('numero_mesa', this.value);
@@ -431,53 +392,16 @@ $proximo_numero = gerarNumeroSequencial($conn);
         });
 
         function selecionarMetodo(metodo) {
-            // Marcar radio
             document.getElementById(metodo).checked = true;
 
-            // Esconder todas as áreas
             document.querySelectorAll('.area-pagamento').forEach(el => el.style.display = 'none');
-
-            // Remover seleção visual
             document.querySelectorAll('.metodo-card').forEach(el => el.classList.remove('selected'));
 
-            // Adicionar seleção visual
             event.currentTarget.classList.add('selected');
-
-            // Mostrar área correspondente
             document.getElementById('area-' + metodo).style.display = 'block';
-
-            // Habilitar botão
             document.getElementById('btn-confirmar').disabled = false;
-
-            // Atualizar cor do botão baseado no método
-            const btn = document.getElementById('btn-confirmar');
-            switch (metodo) {
-                case 'pix':
-                    btn.style.background = 'linear-gradient(135deg, #00cc55, #009944)';
-                    break;
-                case 'cartao':
-                    btn.style.background = 'linear-gradient(135deg, #2196f3, #1976d2)';
-                    break;
-                case 'dinheiro':
-                    btn.style.background = 'linear-gradient(135deg, #ff9800, #f57c00)';
-                    break;
-            }
         }
 
-        // Efeito hover no botão
-        document.getElementById('btn-confirmar').addEventListener('mouseenter', function () {
-            if (!this.disabled) {
-                this.style.transform = 'translateY(-2px)';
-                this.style.boxShadow = '0 8px 25px rgba(0, 204, 85, 0.6)';
-            }
-        });
-
-        document.getElementById('btn-confirmar').addEventListener('mouseleave', function () {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'none';
-        });
-
-        // Animação de loading no submit
         document.getElementById('payment-form').addEventListener('submit', function () {
             const btn = document.getElementById('btn-confirmar');
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processando...';

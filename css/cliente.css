@@ -523,3 +523,126 @@ svg {
         font-size: 16px !important;
     }
 }
+
+/* Adicione este CSS no final do arquivo css/cliente.css */
+
+/* Mensagem de Sucesso Especial */
+.msg-sucesso-pedido {
+    background: linear-gradient(135deg, #00cc55, #009944);
+    color: #fff;
+    padding: 20px 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 6px 20px rgba(0, 204, 85, 0.4);
+    animation: slideInBounce 0.6s ease-out, pulse 2s ease-in-out infinite;
+    border: 2px solid #00ff66;
+    position: relative;
+    overflow: hidden;
+}
+
+.msg-sucesso-pedido::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+
+    50%,
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes slideInBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+
+    60% {
+        transform: translateY(5px) scale(1.02);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 6px 20px rgba(0, 204, 85, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 6px 30px rgba(0, 204, 85, 0.6);
+    }
+}
+
+.msg-sucesso-pedido i {
+    font-size: 32px;
+    animation: rotate 2s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes rotate {
+
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(15deg) scale(1.1);
+    }
+}
+
+.msg-sucesso-pedido span {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.msg-sucesso-pedido .close-msg {
+    cursor: pointer;
+    font-size: 24px;
+    opacity: 0.8;
+    transition: 0.3s;
+    position: relative;
+    z-index: 1;
+}
+
+.msg-sucesso-pedido .close-msg:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+    .msg-sucesso-pedido {
+        flex-direction: column;
+        text-align: center;
+        padding: 18px 20px;
+    }
+
+    .msg-sucesso-pedido i {
+        font-size: 28px;
+    }
+}

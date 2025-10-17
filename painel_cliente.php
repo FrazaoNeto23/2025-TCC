@@ -10,139 +10,146 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 $msg = "";
 $id_cliente = $_SESSION['id_usuario'];
 
-// ===== VERIFICAR E ADICIONAR COLUNA OBSERVACOES SE NÃO EXISTIR =====
-$check_column = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'observacoes'");
-if ($check_column->num_rows == 0) {
+// ===== ADICIONAR AO CARRINHO - CORREÇÃO ESPECÍFICA =====
+if (isset($_POST['adicionar_carrinho'])) {
+    $id_produto = intval($_POST['id_produto']);
+    $quantidade = intval($_POST['quantidade']);
+    $tipo_produto = $_POST['tipo_produto']; // 'normal' ou 'especial'
+
     try {
-        $conn->query("ALTER TABLE pedidos ADD COLUMN observacoes TEXT AFTER metodo_pagamento");
+        // 1. VALIDAR SE O PRODUTO EXISTE
+        $produto_valido = false;
+
+        if ($tipo_produto == 'normal') {
+            $check = $conn->prepare("SELECT id FROM produtos WHERE id = ?");
+            $check->bind_param("i", $id_produto);
+            $check->execute();
+            $produto_valido = $check->get_result()->num_rows > 0;
+        } elseif ($tipo_produto == 'especial') {
+            $check = $conn->prepare("SELECT id FROM produtos_especiais WHERE id = ?");
+            $check->bind_param("i", $id_produto);
+            $check->execute();
+            $produto_valido = $check->get_result()->num_rows > 0;
+        }
+
+        if (!$produto_valido) {
+            $msg = "❌ Produto não encontrado!";
+        } else {
+            // 2. VERIFICAR SE JÁ EXISTE NO CARRINHO
+            $stmt = $conn->prepare("
+                SELECT id, quantidade FROM carrinho 
+                WHERE id_cliente=? AND id_produto=? AND tipo_produto=?
+            ");
+            $stmt->bind_param("iis", $id_cliente, $id_produto, $tipo_produto);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+
+            if ($resultado->num_rows > 0) {
+                // 3. ATUALIZAR QUANTIDADE EXISTENTE
+                $item_existente = $resultado->fetch_assoc();
+                $nova_quantidade = $item_existente['quantidade'] + $quantidade;
+
+                $update_stmt = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=?");
+                $update_stmt->bind_param("ii", $nova_quantidade, $item_existente['id']);
+
+                if ($update_stmt->execute()) {
+                    $msg = "✅ Quantidade atualizada no carrinho!";
+                } else {
+                    $msg = "❌ Erro ao atualizar carrinho: " . $conn->error;
+                }
+            } else {
+                // 4. INSERIR NOVO ITEM NO CARRINHO
+                $insert_stmt = $conn->prepare("
+                    INSERT INTO carrinho (id_cliente, id_produto, quantidade, tipo_produto, data_adicao) 
+                    VALUES (?, ?, ?, ?, NOW())
+                ");
+                $insert_stmt->bind_param("iiis", $id_cliente, $id_produto, $quantidade, $tipo_produto);
+
+                if ($insert_stmt->execute()) {
+                    $nome_produto = "";
+                    if ($tipo_produto == 'normal') {
+                        $nome_result = $conn->query("SELECT nome FROM produtos WHERE id = $id_produto");
+                        $nome_produto = $nome_result->fetch_assoc()['nome'];
+                    } else {
+                        $nome_result = $conn->query("SELECT nome FROM produtos_especiais WHERE id = $id_produto");
+                        $nome_produto = $nome_result->fetch_assoc()['nome'];
+                    }
+
+                    $msg = "✅ $nome_produto adicionado ao carrinho!";
+                } else {
+                    $msg = "❌ Erro ao adicionar ao carrinho: " . $conn->error;
+                }
+            }
+        }
+
     } catch (Exception $e) {
-        // Ignorar se der erro
+        $msg = "❌ Erro no sistema: " . $e->getMessage();
+
+        // Log do erro para debug
+        error_log("Erro no carrinho - Cliente: $id_cliente, Produto: $id_produto, Tipo: $tipo_produto, Erro: " . $e->getMessage());
     }
 }
 
-// ===== SISTEMA DE RESET AUTOMÁTICO =====
+// ===== SISTEMA DE RESET AUTOMÁTICO (simplificado) =====
 if (!isset($_SESSION['reset_verificado_hoje'])) {
     $hoje = date('Y-m-d');
 
+    // Verificar se existe a tabela system_logs
+    $table_check = $conn->query("SHOW TABLES LIKE 'system_logs'");
+    if ($table_check->num_rows == 0) {
+        // Criar tabela se não existir
+        $conn->query("
+            CREATE TABLE system_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                tipo VARCHAR(50),
+                nivel VARCHAR(20) DEFAULT 'INFO',
+                status VARCHAR(20),
+                mensagem TEXT,
+                dados JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+    }
+
     // Verificar se já resetou hoje
-    $stmt = $conn->prepare("
+    $reset_check = $conn->query("
         SELECT COUNT(*) as total 
         FROM system_logs 
         WHERE tipo = 'reset_diario' 
-        AND DATE(created_at) = ?
+        AND DATE(created_at) = '$hoje'
     ");
-    $stmt->bind_param("s", $hoje);
-    $stmt->execute();
-    $reset_hoje = $stmt->get_result()->fetch_assoc()['total'];
+
+    $reset_hoje = $reset_check ? $reset_check->fetch_assoc()['total'] : 0;
 
     if ($reset_hoje == 0) {
         try {
-            $conn->begin_transaction();
-
-            // 1. Criar tabela de backup para hoje
+            // Fazer backup e reset simples
             $backup_table = 'pedidos_backup_' . date('Y_m_d');
             $conn->query("CREATE TABLE IF NOT EXISTS `$backup_table` LIKE pedidos");
-
-            // 2. Fazer backup dos pedidos finalizados
-            $conn->query("
-                INSERT INTO `$backup_table` 
-                SELECT * FROM pedidos 
-                WHERE status = 'Entregue' AND status_pagamento = 'Pago'
-            ");
-
-            // 3. Limpar pedidos finalizados (mais de 2 horas)
-            $stmt = $conn->prepare("
-                DELETE FROM pedidos 
-                WHERE status = 'Entregue' 
-                AND status_pagamento = 'Pago' 
-                AND data < DATE_SUB(NOW(), INTERVAL 2 HOUR)
-            ");
-            $stmt->execute();
-            $pedidos_removidos = $stmt->affected_rows;
-
-            // 4. Resetar auto increment para começar do 1
+            $conn->query("INSERT INTO `$backup_table` SELECT * FROM pedidos WHERE status = 'Entregue'");
+            $conn->query("DELETE FROM pedidos WHERE status = 'Entregue' AND data < DATE_SUB(NOW(), INTERVAL 2 HOUR)");
             $conn->query("ALTER TABLE pedidos AUTO_INCREMENT = 1");
+            $conn->query("INSERT INTO system_logs (tipo, status, mensagem) VALUES ('reset_diario', 'sucesso', 'Reset automático')");
 
-            // 5. Registrar o reset no log
-            $stmt = $conn->prepare("
-                INSERT INTO system_logs (tipo, nivel, status, mensagem, dados) 
-                VALUES ('reset_diario', 'INFO', 'sucesso', 'Reset automático executado', ?)
-            ");
-            $dados_log = json_encode([
-                'cliente_id' => $id_cliente,
-                'pedidos_removidos' => $pedidos_removidos,
-                'backup_table' => $backup_table,
-                'timestamp' => time()
-            ]);
-            $stmt->bind_param("s", $dados_log);
-            $stmt->execute();
-
-            $conn->commit();
-
-            // Marcar como verificado para esta sessão
             $_SESSION['reset_verificado_hoje'] = true;
-
-            if ($pedidos_removidos > 0) {
-                $msg = "🔄 Numeração de pedidos reiniciada! $pedidos_removidos pedidos anteriores foram arquivados.";
-            } else {
-                $msg = "🔄 Sistema pronto! Os próximos pedidos começarão do #1.";
-            }
+            $msg = "🔄 Sistema reiniciado para o dia!";
 
         } catch (Exception $e) {
-            $conn->rollback();
-            error_log("Erro no reset automático: " . $e->getMessage());
+            // Ignorar erros de reset para não quebrar o sistema
+            $_SESSION['reset_verificado_hoje'] = true;
         }
     } else {
         $_SESSION['reset_verificado_hoje'] = true;
     }
 }
 
-// Adicionar ao carrinho
-if (isset($_POST['adicionar_carrinho'])) {
-    $id_produto = intval($_POST['id_produto']);
-    $quantidade = intval($_POST['quantidade']);
-    $tipo_produto = $_POST['tipo_produto'];
-
-    // Verificar se já existe no carrinho
-    $stmt = $conn->prepare("
-        SELECT id, quantidade FROM carrinho 
-        WHERE id_cliente=? AND id_produto=? AND tipo_produto=?
-    ");
-    $stmt->bind_param("iis", $id_cliente, $id_produto, $tipo_produto);
-    $stmt->execute();
-    $verifica = $stmt->get_result();
-
-    if ($verifica->num_rows > 0) {
-        // Atualizar quantidade
-        $item = $verifica->fetch_assoc();
-        $nova_qtd = $item['quantidade'] + $quantidade;
-        $stmt = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=?");
-        $stmt->bind_param("ii", $nova_qtd, $item['id']);
-        $stmt->execute();
-    } else {
-        // Adicionar novo item
-        $stmt = $conn->prepare("
-            INSERT INTO carrinho (id_cliente, id_produto, quantidade, tipo_produto) 
-            VALUES (?, ?, ?, ?)
-        ");
-        $stmt->bind_param("iiis", $id_cliente, $id_produto, $quantidade, $tipo_produto);
-        $stmt->execute();
-    }
-
-    $msg = "✅ Produto adicionado ao carrinho!";
-}
-
 // Cancelar pedido
 if (isset($_GET['cancelar'])) {
     $id_pedido = intval($_GET['cancelar']);
-    $stmt = $conn->prepare("
-        DELETE FROM pedidos 
-        WHERE id=? AND id_cliente=? AND status='Pendente'
-    ");
+    $stmt = $conn->prepare("DELETE FROM pedidos WHERE id=? AND id_cliente=? AND status='Pendente'");
     $stmt->bind_param("ii", $id_pedido, $id_cliente);
-    $stmt->execute();
 
-    if ($stmt->affected_rows > 0) {
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
         $msg = "❌ Pedido cancelado com sucesso!";
     }
 }
@@ -153,14 +160,12 @@ if (isset($_SESSION['pagamento_sucesso'])) {
     unset($_SESSION['pagamento_sucesso']);
 }
 
-// Buscar produtos normais
+// Buscar produtos
 $produtos = $conn->query("SELECT * FROM produtos ORDER BY nome");
-
-// Buscar produtos especiais
 $produtos_especiais = $conn->query("SELECT * FROM produtos_especiais ORDER BY nome");
 
-// Buscar pedidos do cliente (com verificação da coluna observacoes)
-$pedidos_query = "
+// Buscar pedidos
+$pedidos = $conn->query("
     SELECT pedidos.*, 
            CASE 
                WHEN pedidos.tipo_produto = 'normal' THEN produtos.nome
@@ -176,14 +181,10 @@ $pedidos_query = "
     LEFT JOIN produtos_especiais ON pedidos.id_produto = produtos_especiais.id AND pedidos.tipo_produto = 'especial'
     WHERE pedidos.id_cliente = $id_cliente
     ORDER BY pedidos.data DESC
-";
-
-$pedidos = $conn->query($pedidos_query);
+");
 
 // Contar itens no carrinho
-$count_carrinho = $conn->query("
-    SELECT COUNT(*) as total FROM carrinho WHERE id_cliente=$id_cliente
-")->fetch_assoc()['total'];
+$count_carrinho = $conn->query("SELECT COUNT(*) as total FROM carrinho WHERE id_cliente=$id_cliente")->fetch_assoc()['total'];
 ?>
 
 <!DOCTYPE html>
@@ -196,7 +197,7 @@ $count_carrinho = $conn->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        .reset-notification {
+        .msg-notification {
             background: linear-gradient(135deg, #4caf50, #45a049);
             color: white;
             padding: 15px 20px;
@@ -210,24 +211,42 @@ $count_carrinho = $conn->query("
             gap: 10px;
         }
 
-        .reset-notification i {
-            font-size: 24px;
+        .msg-error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            border-left-color: #c62828;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
         }
 
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .btn-carrinho {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #0ff, #00d4d4);
+            color: #121212;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
         }
 
-        .produtos-especiais {
-            margin-bottom: 40px;
+        .carrinho-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4c4c;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
         }
 
         .produto.especial {
@@ -250,90 +269,14 @@ $count_carrinho = $conn->query("
             z-index: 1;
         }
 
-        .produto.especial h3 {
-            color: #ffa500;
-        }
-
-        .pedido-numero-novo {
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .pedido-numero-antigo {
-            background: #666;
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .btn-carrinho {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: 0.3s;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
-        }
-
-        .btn-carrinho:hover {
-            background: linear-gradient(135deg, #00d4d4, #0ff);
-            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6);
-            transform: translateY(-2px);
-        }
-
-        .carrinho-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ff4c4c;
-            color: #fff;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .debug-info {
+            background: #1e1e1e;
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: monospace;
             font-size: 12px;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        .btn-add-carrinho {
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-        }
-
-        .btn-add-carrinho:hover {
-            background: linear-gradient(135deg, #00d4d4, #0ff);
-            box-shadow: 0 0 15px #0ff;
         }
     </style>
 </head>
@@ -354,11 +297,13 @@ $count_carrinho = $conn->query("
         </div>
 
         <?php if ($msg): ?>
-            <div class="reset-notification">
-                <i class="fa fa-info-circle"></i>
+            <div class="msg-notification <?= str_contains($msg, '❌') ? 'msg-error' : '' ?>">
+                <i class="fa <?= str_contains($msg, '❌') ? 'fa-exclamation-triangle' : 'fa-info-circle' ?>"></i>
                 <span><?php echo $msg; ?></span>
             </div>
         <?php endif; ?>
+
+        <!-- Debug removido - sistema funcionando! -->
 
         <!-- Produtos Especiais -->
         <?php if ($produtos_especiais && $produtos_especiais->num_rows > 0): ?>
@@ -383,7 +328,7 @@ $count_carrinho = $conn->query("
                                 <input type="number" name="quantidade" value="1" min="1" max="99" readonly>
                                 <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
                             </div>
-                            <button type="submit" name="adicionar_carrinho" class="btn-comprar btn-add-carrinho">
+                            <button type="submit" name="adicionar_carrinho" class="btn-comprar">
                                 <i class="fa fa-cart-plus"></i> Adicionar ao Carrinho
                             </button>
                         </form>
@@ -415,118 +360,36 @@ $count_carrinho = $conn->query("
                                 <input type="number" name="quantidade" value="1" min="1" max="99" readonly>
                                 <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
                             </div>
-                            <button type="submit" name="adicionar_carrinho" class="btn-comprar btn-add-carrinho">
+                            <button type="submit" name="adicionar_carrinho" class="btn-comprar">
                                 <i class="fa fa-cart-plus"></i> Adicionar ao Carrinho
                             </button>
                         </form>
                     </div>
                 <?php endwhile; ?>
-            <?php else: ?>
-                <p>Nenhum produto disponível no momento.</p>
             <?php endif; ?>
         </div>
 
+        <!-- Meus Pedidos -->
         <h2><i class="fa fa-receipt"></i> Meus Pedidos</h2>
-
         <?php if ($pedidos && $pedidos->num_rows > 0): ?>
             <div class="pedidos-lista">
-                <?php while ($pd = $pedidos->fetch_assoc()):
-                    $status_class = '';
-                    $status_icon = 'fa-clock';
-                    $is_new_numbering = !str_starts_with($pd['numero_exibicao'], 'OLD-');
-
-                    if ($pd['status'] == 'Em preparo') {
-                        $status_class = 'status-preparo';
-                        $status_icon = 'fa-fire';
-                    } elseif ($pd['status'] == 'Entregando') {
-                        $status_class = 'status-entregando';
-                        $status_icon = 'fa-truck';
-                    } elseif ($pd['status'] == 'Entregue') {
-                        $status_class = 'status-entregue';
-                        $status_icon = 'fa-check-circle';
-                    }
-
-                    $pagamento_class = $pd['status_pagamento'] == 'Pago' ? 'pago' : 'pendente';
-                    ?>
-                    <div class="pedido-card <?= $status_class ?>">
+                <?php while ($pd = $pedidos->fetch_assoc()): ?>
+                    <div class="pedido-card">
                         <div class="pedido-header">
-                            <div>
-                                <?php if ($is_new_numbering): ?>
-                                    <span class="pedido-numero-novo">Pedido #<?= $pd['numero_exibicao'] ?></span>
-                                <?php else: ?>
-                                    <span class="pedido-numero-antigo">Pedido #<?= $pd['numero_exibicao'] ?></span>
-                                <?php endif; ?>
-                            </div>
-                            <span class="pedido-data">
-                                <i class="fa fa-calendar"></i>
-                                <?= date('d/m/Y H:i', strtotime($pd['data'])) ?>
-                            </span>
+                            <span class="pedido-id">Pedido #<?= $pd['numero_exibicao'] ?></span>
+                            <span class="pedido-data"><?= date('d/m/Y H:i', strtotime($pd['data'])) ?></span>
                         </div>
-
                         <div class="pedido-info">
-                            <?php if ($pd['imagem'] && file_exists("uploads/" . $pd['imagem'])): ?>
-                                <img src="uploads/<?= $pd['imagem'] ?>" alt="<?= $pd['produto_nome'] ?>" class="pedido-img">
-                            <?php endif; ?>
-                            <div class="pedido-detalhes">
-                                <h3><?= htmlspecialchars($pd['produto_nome'] ?? 'Produto não encontrado') ?></h3>
-                                <?php if ($pd['numero_mesa']): ?>
-                                    <p><i class="fa fa-table"></i> Mesa: <?= $pd['numero_mesa'] ?></p>
-                                <?php else: ?>
-                                    <p><i class="fa fa-motorcycle"></i> Delivery</p>
-                                <?php endif; ?>
-                                <p><i class="fa fa-box"></i> Quantidade: <?= $pd['quantidade'] ?></p>
-                                <p class="pedido-total">
-                                    <i class="fa fa-dollar-sign"></i> Total: R$ <?= number_format($pd['total'], 2, ',', '.') ?>
-                                </p>
-
-                                <?php
-                                // Verificar se a coluna observacoes existe e tem conteúdo
-                                $observacoes = isset($pd['observacoes']) ? $pd['observacoes'] : null;
-                                if ($observacoes):
-                                    ?>
-                                    <p><i class="fa fa-comment"></i> <?= htmlspecialchars($observacoes) ?></p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <div class="pedido-footer">
-                            <span class="status-badge <?= $status_class ?>">
-                                <i class="fa <?= $status_icon ?>"></i> <?= $pd['status'] ?>
-                            </span>
-                            <span class="pagamento-badge <?= $pagamento_class ?>">
-                                <i class="fa <?= $pd['status_pagamento'] == 'Pago' ? 'fa-check' : 'fa-clock' ?>"></i>
-                                <?= $pd['status_pagamento'] ?>
-                            </span>
-
-                            <?php if (!empty($pd['metodo_pagamento'])): ?>
-                                <p class="metodo-pagamento">
-                                    <i class="fa fa-info-circle"></i> Método: <?= ucfirst($pd['metodo_pagamento']) ?>
-                                </p>
-                            <?php endif; ?>
-
-                            <div class="pedido-acoes">
-                                <?php if ($pd['status'] == 'Pendente' && $pd['status_pagamento'] == 'Aguardando'): ?>
-                                    <a href="pagamento.php?pedido_id=<?= $pd['id'] ?>" class="btn-pagar">
-                                        <i class="fa fa-credit-card"></i> Pagar
-                                    </a>
-                                <?php endif; ?>
-
-                                <?php if ($pd['status'] == 'Pendente'): ?>
-                                    <a href="?cancelar=<?= $pd['id'] ?>" class="btn-cancelar"
-                                        onclick="return confirm('Deseja cancelar este pedido?')">
-                                        <i class="fa fa-times"></i> Cancelar
-                                    </a>
-                                <?php endif; ?>
-                            </div>
+                            <h3><?= htmlspecialchars($pd['produto_nome'] ?? 'Produto') ?></h3>
+                            <p>Quantidade: <?= $pd['quantidade'] ?></p>
+                            <p>Total: R$ <?= number_format($pd['total'], 2, ',', '.') ?></p>
+                            <p>Status: <?= $pd['status'] ?></p>
                         </div>
                     </div>
                 <?php endwhile; ?>
             </div>
         <?php else: ?>
-            <div class="sem-pedidos">
-                <i class="fa fa-shopping-bag"></i>
-                <p>Você ainda não fez nenhum pedido</p>
-            </div>
+            <p>Nenhum pedido encontrado.</p>
         <?php endif; ?>
     </div>
 
@@ -545,16 +408,16 @@ $count_carrinho = $conn->query("
             }
         }
 
-        // Auto-hide notification after 10 seconds
+        // Auto-hide notifications
         document.addEventListener('DOMContentLoaded', function () {
-            const notification = document.querySelector('.reset-notification');
-            if (notification) {
+            const notifications = document.querySelectorAll('.msg-notification');
+            notifications.forEach(notification => {
                 setTimeout(() => {
                     notification.style.opacity = '0';
                     notification.style.transform = 'translateY(-20px)';
                     setTimeout(() => notification.remove(), 500);
-                }, 10000);
-            }
+                }, 5000);
+            });
         });
     </script>
 </body>

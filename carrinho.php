@@ -19,8 +19,8 @@ if (isset($_GET['remover'])) {
     exit;
 }
 
-// Atualizar quantidade
-if (isset($_POST['atualizar_qtd'])) {
+// Atualizar quantidade - CORRIGIDO
+if (isset($_POST['quantidade']) && isset($_POST['id_carrinho'])) {
     $id_carrinho = intval($_POST['id_carrinho']);
     $quantidade = intval($_POST['quantidade']);
 
@@ -29,6 +29,13 @@ if (isset($_POST['atualizar_qtd'])) {
         $stmt->bind_param("iii", $quantidade, $id_carrinho, $id_cliente);
         $stmt->execute();
     }
+
+    // Retornar JSON para requisições AJAX
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
     header("Location: carrinho.php");
     exit;
 }
@@ -124,7 +131,7 @@ $total_itens = 0;
                                     <div class="qtd-control">
                                         <button type="button" onclick="diminuir(this)"><i class="fa fa-minus"></i></button>
                                         <input type="number" name="quantidade" value="<?= $item['quantidade'] ?>" min="1"
-                                            max="99">
+                                            max="99" readonly>
                                         <button type="button" onclick="aumentar(this)"><i class="fa fa-plus"></i></button>
                                     </div>
                                 </form>
@@ -199,15 +206,9 @@ $total_itens = 0;
 
         function atualizarQuantidade(form) {
             clearTimeout(timeoutId);
+
             timeoutId = setTimeout(() => {
-                const input = form.querySelector('input[name="atualizar_qtd"]');
-                if (!input) {
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'atualizar_qtd';
-                    hiddenInput.value = '1';
-                    form.appendChild(hiddenInput);
-                }
+                // Submeter o formulário
                 form.submit();
             }, 800);
         }
@@ -216,6 +217,7 @@ $total_itens = 0;
             const form = btn.closest('.form-quantidade');
             const input = form.querySelector('input[type="number"]');
             let valor = Number(input.value);
+
             if (valor < 99) {
                 input.value = valor + 1;
                 atualizarQuantidade(form);
@@ -226,6 +228,7 @@ $total_itens = 0;
             const form = btn.closest('.form-quantidade');
             const input = form.querySelector('input[type="number"]');
             let valor = Number(input.value);
+
             if (valor > 1) {
                 input.value = valor - 1;
                 atualizarQuantidade(form);
