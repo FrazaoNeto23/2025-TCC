@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Captura TODA saída
 session_start();
 include "config.php";
 
@@ -9,7 +10,7 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 
 $id_cliente = $_SESSION['id_usuario'];
 
-// ===== VERIFICAR E ADICIONAR COLUNAS SE NÃO EXISTIREM =====
+// ===== VERIFICAR E ADICIONAR COLUNAS =====
 $check_numero = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'numero_pedido'");
 if ($check_numero->num_rows == 0) {
     $conn->query("ALTER TABLE pedidos ADD COLUMN numero_pedido VARCHAR(20) AFTER id");
@@ -21,10 +22,10 @@ if ($check_obs->num_rows == 0) {
     $conn->query("ALTER TABLE pedidos ADD COLUMN observacoes TEXT AFTER metodo_pagamento");
 }
 
-// ===== FUNÇÃO PARA GERAR NUMERAÇÃO SEQUENCIAL =====
+// ===== GERAR NÚMERO SEQUENCIAL =====
 function gerarNumeroSequencial($conn)
 {
-    $prefixo = date('Ymd'); // Ex: 20251017
+    $prefixo = date('Ymd');
 
     $stmt = $conn->prepare("
         SELECT MAX(CAST(SUBSTRING_INDEX(numero_pedido, '-', -1) AS UNSIGNED)) as ultimo_numero
@@ -50,7 +51,6 @@ if (isset($_POST['processar_pagamento'])) {
     if (empty($metodo)) {
         $erro = "Por favor, selecione um método de pagamento!";
     } else {
-        // Buscar itens do carrinho
         $itens = $conn->query("
             SELECT carrinho.*, 
                    CASE 
@@ -68,21 +68,17 @@ if (isset($_POST['processar_pagamento'])) {
         ");
 
         if ($itens->num_rows > 0) {
-            $pedidos_criados = [];
-            $total_geral = 0;
-
             try {
                 $conn->begin_transaction();
 
-                // Gerar um único número para todos os itens deste pedido
                 $numero_pedido = gerarNumeroSequencial($conn);
+                $total_geral = 0;
 
-                // Criar pedidos para cada item do carrinho
                 while ($item = $itens->fetch_assoc()) {
                     $total = $item['produto_preco'] * $item['quantidade'];
                     $total_geral += $total;
 
-                    $observacoes = "Pagamento via " . $metodo . " - Produto: " . $item['produto_nome'];
+                    $observacoes = "Pagamento via " . $metodo;
 
                     $stmt = $conn->prepare("
                         INSERT INTO pedidos 
@@ -103,53 +99,26 @@ if (isset($_POST['processar_pagamento'])) {
                         $observacoes
                     );
 
-                    if (!$stmt->execute()) {
-                        throw new Exception("Erro ao criar pedido: " . $stmt->error);
-                    }
-
-                    $pedidos_criados[] = $conn->insert_id;
+                    $stmt->execute();
                 }
 
-                // Limpar carrinho
                 $conn->query("DELETE FROM carrinho WHERE id_cliente = $id_cliente");
-
-                // Registrar transação no log
-                $transacao_id = 'TXN_' . time() . '_' . $id_cliente;
-                $stmt = $conn->prepare("
-                    INSERT INTO system_logs (tipo, nivel, status, mensagem, dados) 
-                    VALUES ('pagamento', 'INFO', 'sucesso', 'Pagamento processado', ?)
-                ");
-
-                $dados_transacao = json_encode([
-                    'transacao_id' => $transacao_id,
-                    'cliente_id' => $id_cliente,
-                    'metodo' => $metodo,
-                    'total' => $total_geral,
-                    'numero_pedido' => $numero_pedido,
-                    'pedidos_ids' => $pedidos_criados,
-                    'numero_mesa' => $numero_mesa,
-                    'timestamp' => time()
-                ]);
-
-                $stmt->bind_param("s", $dados_transacao);
-                $stmt->execute();
-
                 $conn->commit();
 
-                // Mensagem de sucesso personalizada
                 if ($numero_mesa) {
-                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Em breve será servido na mesa $numero_mesa.";
+                    $msg_sucesso = "🎉 Pedido #$numero_pedido confirmado! Mesa $numero_mesa.";
                 } else {
-                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Em breve estará na sua casa. Obrigado pela preferência!";
+                    $msg_sucesso = "🎉 Pedido #$numero_pedido confirmado!";
                 }
 
-                header("Location: painel_cliente.php");
-                exit;
+                $_SESSION['pagamento_sucesso'] = $msg_sucesso;
+
+                // REDIRECIONAMENTO FORÇADO - MÁXIMA PRIORIDADE
+                die('<html><head><meta charset="UTF-8"><script>window.location.replace("painel_cliente.php");</script></head><body style="font-family:Arial;text-align:center;padding:50px;background:#121212;color:#0ff;"><div style="border:4px solid #333;border-top:4px solid #0ff;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto;"></div><style>@keyframes spin{to{transform:rotate(360deg);}}</style><h2>✅ Pagamento Confirmado!</h2><p>Redirecionando para o cardápio...</p><noscript><meta http-equiv="refresh" content="0;url=painel_cliente.php"></noscript></body></html>');
 
             } catch (Exception $e) {
                 $conn->rollback();
-                $erro = "Erro ao processar pagamento: " . $e->getMessage();
-                error_log("Erro finalizar_carrinho.php: " . $e->getMessage());
+                $erro = "Erro: " . $e->getMessage();
             }
         } else {
             $erro = "Carrinho vazio!";
@@ -157,7 +126,7 @@ if (isset($_POST['processar_pagamento'])) {
     }
 }
 
-// Buscar itens do carrinho para exibir
+// Buscar itens do carrinho
 $itens_carrinho = $conn->query("
     SELECT carrinho.*, 
            CASE 
@@ -191,10 +160,8 @@ while ($item = $itens_carrinho->fetch_assoc()) {
     $itens_array[] = $item;
 }
 
-// Verificar próximo número de pedido para preview
 $proximo_numero = gerarNumeroSequencial($conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -204,64 +171,6 @@ $proximo_numero = gerarNumeroSequencial($conn);
     <link rel="stylesheet" href="css/pagamento.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        .preview-numero {
-            background: linear-gradient(135deg, #0ff, #00d4d4);
-            color: #121212;
-            padding: 10px 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
-            border: 2px solid #0ff;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from {
-                box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            }
-
-            to {
-                box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-            }
-        }
-
-        .erro-msg {
-            background: #ff4c4c;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            25% {
-                transform: translateX(-5px);
-            }
-
-            75% {
-                transform: translateX(5px);
-            }
-        }
-
-        .item-resumo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-    </style>
 </head>
 
 <body>
@@ -270,58 +179,38 @@ $proximo_numero = gerarNumeroSequencial($conn);
 
         <h1><i class="fa fa-credit-card"></i> Finalizar Pedido</h1>
 
-        <div class="preview-numero">
-            <i class="fa fa-hashtag"></i> Seu pedido será: <strong>#<?= $proximo_numero ?></strong>
-        </div>
-
         <?php if (isset($erro)): ?>
-            <div class="erro-msg">
-                <i class="fa fa-exclamation-triangle"></i>
-                <span><?= htmlspecialchars($erro) ?></span>
+            <div style="background:#ff4c4c;color:#fff;padding:15px;border-radius:8px;margin-bottom:20px;">
+                <i class="fa fa-exclamation-triangle"></i> <?= $erro ?>
             </div>
         <?php endif; ?>
 
         <div class="pedido-resumo">
             <h2><i class="fa fa-receipt"></i> Resumo do Pedido</h2>
             <?php foreach ($itens_array as $item): ?>
-                <div class="item-resumo">
-                    <?php if ($item['produto_imagem'] && file_exists("uploads/" . $item['produto_imagem'])): ?>
-                        <img src="uploads/<?= $item['produto_imagem'] ?>" alt="<?= $item['produto_nome'] ?>"
-                            style="width: 50px; height: 50px; border-radius: 8px;">
-                    <?php endif; ?>
-                    <div style="flex: 1;">
-                        <strong><?= htmlspecialchars($item['produto_nome']) ?></strong>
-                        <?php if ($item['tipo_produto'] == 'especial'): ?>
-                            <span
-                                style="background: #ffa500; color: #121212; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 5px;">⭐
-                                ESPECIAL</span>
-                        <?php endif; ?>
-                        <br>
-                        <span style="color: #aaa;">Qtd: <?= $item['quantidade'] ?> × R$
-                            <?= number_format($item['produto_preco'], 2, ',', '.') ?></span>
-                        <br>
-                        <strong style="color: #0ff;">Subtotal: R$
+                <p>
+                    <strong><?= htmlspecialchars($item['produto_nome']) ?></strong><br>
+                    <span style="color:#aaa;font-size:14px;">
+                        Qtd: <?= $item['quantidade'] ?> × R$ <?= number_format($item['produto_preco'], 2, ',', '.') ?> =
+                        <strong style="color:#0ff;">R$
                             <?= number_format($item['produto_preco'] * $item['quantidade'], 2, ',', '.') ?></strong>
-                    </div>
-                </div>
-                <hr style="border: none; border-top: 1px solid #333; margin: 10px 0;">
+                    </span>
+                </p>
             <?php endforeach; ?>
-            <p class="total"><strong>Total Geral: R$ <?= number_format($total_carrinho, 2, ',', '.') ?></strong></p>
+            <p class="total">Total: R$ <?= number_format($total_carrinho, 2, ',', '.') ?></p>
         </div>
 
         <div class="metodos-pagamento">
-            <h2><i class="fa fa-payment"></i> Escolha o método de pagamento</h2>
+            <h2><i class="fa fa-credit-card"></i> Escolha o método de pagamento</h2>
 
             <form method="POST" id="payment-form">
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="numero_mesa"
-                        style="display: block; color: #0ff; font-weight: bold; margin-bottom: 10px;">
+                <div class="form-group">
+                    <label for="numero_mesa">
                         <i class="fa fa-table"></i> Número da Mesa (opcional)
                     </label>
                     <input type="number" name="numero_mesa" id="numero_mesa" placeholder="Digite o número da mesa"
-                        min="1" max="999"
-                        style="width: 100%; padding: 12px; background: #121212; border: 2px solid #0ff; border-radius: 8px; color: #fff;">
-                    <small style="color: #aaa; display: block; margin-top: 5px;">Deixe em branco para delivery</small>
+                        min="1" max="999">
+                    <small><i class="fa fa-info-circle"></i> Deixe em branco para delivery</small>
                 </div>
 
                 <div class="metodo-card" onclick="selecionarMetodo('pix')">
@@ -343,34 +232,28 @@ $proximo_numero = gerarNumeroSequencial($conn);
                 <div class="metodo-card" onclick="selecionarMetodo('dinheiro')">
                     <input type="radio" name="metodo_pagamento" id="dinheiro" value="dinheiro" required>
                     <label for="dinheiro">
-                        <i class="fa fa-money-bill"></i>
+                        <i class="fa fa-money-bill-wave"></i>
                         <span>Dinheiro</span>
                     </label>
                 </div>
 
                 <div id="area-pix" class="area-pagamento" style="display:none;">
                     <h3><i class="fa fa-qrcode"></i> Pagamento via PIX</h3>
-                    <div class="pix-info">
-                        <p><i class="fa fa-info-circle"></i> Sistema demonstrativo - pedido será criado como pago</p>
-                    </div>
+                    <p style="text-align:center;color:#aaa;">Sistema demonstrativo - pedido será criado como pago</p>
                 </div>
 
                 <div id="area-cartao" class="area-pagamento" style="display:none;">
                     <h3><i class="fa fa-credit-card"></i> Dados do Cartão</h3>
-                    <div style="background: #2a2a2a; padding: 20px; border-radius: 10px;">
-                        <p><i class="fa fa-info-circle"></i> Sistema demonstrativo - pedido será criado como pago</p>
-                    </div>
+                    <p style="text-align:center;color:#aaa;">Sistema demonstrativo - pedido será criado como pago</p>
                 </div>
 
                 <div id="area-dinheiro" class="area-pagamento" style="display:none;">
-                    <h3><i class="fa fa-money-bill"></i> Pagamento em Dinheiro</h3>
-                    <div style="background: #2a2a2a; padding: 20px; border-radius: 10px;">
-                        <p><i class="fa fa-motorcycle"></i> Você pagará na entrega</p>
-                    </div>
+                    <h3><i class="fa fa-money-bill-wave"></i> Pagamento em Dinheiro</h3>
+                    <p style="text-align:center;color:#aaa;"><i class="fa fa-motorcycle"></i> Você pagará na entrega</p>
                 </div>
 
-                <button href="painel_cliente.php" type="submit" name="processar_pagamento" id="btn-confirmar" disabled>
-                    <i class="fa fa-check"></i> Confirmar Pagamento - R$
+                <button type="submit" name="processar_pagamento" id="btn-confirmar" disabled>
+                    <i class="fa fa-check-circle"></i> Confirmar Pagamento - R$
                     <?= number_format($total_carrinho, 2, ',', '.') ?>
                 </button>
             </form>
@@ -402,10 +285,20 @@ $proximo_numero = gerarNumeroSequencial($conn);
             document.getElementById('btn-confirmar').disabled = false;
         }
 
-        document.getElementById('payment-form').addEventListener('submit', function () {
+        document.getElementById('payment-form').addEventListener('submit', function (e) {
+            const metodo = document.querySelector('input[name="metodo_pagamento"]:checked');
+
+            if (!metodo) {
+                e.preventDefault();
+                alert('Por favor, selecione um método de pagamento!');
+                return false;
+            }
+
             const btn = document.getElementById('btn-confirmar');
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processando...';
             btn.disabled = true;
+
+            return true;
         });
     </script>
 </body>

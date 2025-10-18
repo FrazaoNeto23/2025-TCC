@@ -12,20 +12,20 @@ $id_cliente = $_SESSION['id_usuario'];
 // Remover item do carrinho
 if (isset($_GET['remover'])) {
     $id_carrinho = intval($_GET['remover']);
-    $stmt = $conn->prepare("DELETE FROM carrinho WHERE id=? AND id_cliente=?");
+    $stmt = $conn->prepare("DELETE FROM carrinho WHERE id = ? AND id_cliente = ?");
     $stmt->bind_param("ii", $id_carrinho, $id_cliente);
     $stmt->execute();
     header("Location: carrinho.php");
     exit;
 }
 
-// Atualizar quantidade - CORRIGIDO
+// Atualizar quantidade
 if (isset($_POST['quantidade']) && isset($_POST['id_carrinho'])) {
     $id_carrinho = intval($_POST['id_carrinho']);
     $quantidade = intval($_POST['quantidade']);
 
     if ($quantidade > 0 && $quantidade <= 99) {
-        $stmt = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=? AND id_cliente=?");
+        $stmt = $conn->prepare("UPDATE carrinho SET quantidade = ? WHERE id = ? AND id_cliente = ?");
         $stmt->bind_param("iii", $quantidade, $id_carrinho, $id_cliente);
         $stmt->execute();
     }
@@ -42,7 +42,7 @@ if (isset($_POST['quantidade']) && isset($_POST['id_carrinho'])) {
 
 // Limpar carrinho
 if (isset($_GET['limpar'])) {
-    $stmt = $conn->prepare("DELETE FROM carrinho WHERE id_cliente=?");
+    $stmt = $conn->prepare("DELETE FROM carrinho WHERE id_cliente = ?");
     $stmt->bind_param("i", $id_cliente);
     $stmt->execute();
     header("Location: carrinho.php");
@@ -50,7 +50,7 @@ if (isset($_GET['limpar'])) {
 }
 
 // Buscar itens do carrinho
-$itens_carrinho = $conn->query("
+$stmt = $conn->prepare("
     SELECT carrinho.*, 
            CASE 
                WHEN carrinho.tipo_produto = 'normal' THEN produtos.nome
@@ -71,9 +71,12 @@ $itens_carrinho = $conn->query("
     FROM carrinho
     LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
     LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
-    WHERE carrinho.id_cliente = $id_cliente
+    WHERE carrinho.id_cliente = ?
     ORDER BY carrinho.data_adicao DESC
 ");
+$stmt->bind_param("i", $id_cliente);
+$stmt->execute();
+$itens_carrinho = $stmt->get_result();
 
 $total_carrinho = 0;
 $total_itens = 0;
@@ -84,7 +87,7 @@ $total_itens = 0;
 
 <head>
     <meta charset="UTF-8">
-    <title>Meu Carrinho</title>
+    <title>Meu Carrinho - Burger House</title>
     <link rel="stylesheet" href="css/carrinho.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -108,8 +111,9 @@ $total_itens = 0;
                         ?>
                         <div class="item-carrinho <?= $item['tipo_produto'] == 'especial' ? 'item-especial' : '' ?>">
                             <div class="item-imagem">
-                                <?php if ($item['produto_imagem']): ?>
-                                    <img src="uploads/<?= $item['produto_imagem'] ?>" alt="<?= $item['produto_nome'] ?>">
+                                <?php if ($item['produto_imagem'] && file_exists("uploads/" . $item['produto_imagem'])): ?>
+                                    <img src="uploads/<?= htmlspecialchars($item['produto_imagem']) ?>"
+                                        alt="<?= htmlspecialchars($item['produto_nome']) ?>">
                                 <?php else: ?>
                                     <div class="sem-imagem"><i class="fa fa-image"></i></div>
                                 <?php endif; ?>
@@ -120,8 +124,8 @@ $total_itens = 0;
                             </div>
 
                             <div class="item-info">
-                                <h3><?= $item['produto_nome'] ?></h3>
-                                <p class="item-descricao"><?= $item['produto_descricao'] ?></p>
+                                <h3><?= htmlspecialchars($item['produto_nome']) ?></h3>
+                                <p class="item-descricao"><?= htmlspecialchars($item['produto_descricao'] ?? '') ?></p>
                                 <p class="item-preco">R$ <?= number_format($item['produto_preco'], 2, ',', '.') ?></p>
                             </div>
 
@@ -208,7 +212,6 @@ $total_itens = 0;
             clearTimeout(timeoutId);
 
             timeoutId = setTimeout(() => {
-                // Submeter o formulário
                 form.submit();
             }, 800);
         }

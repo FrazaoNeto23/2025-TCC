@@ -1,10 +1,11 @@
 <?php
-$host = "localhost:3307";
+$host = "localhost";
 $user = "root"; 
 $pass = "";
 $db   = "burger_house";
+$port = 3306;
 
-$conn = new mysqli($host, $user, $pass, $db);
+$conn = new mysqli($host, $user, $pass, $db, $port);
 $conn->set_charset("utf8mb4");
 
 if ($conn->connect_error) {
