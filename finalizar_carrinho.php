@@ -1,5 +1,5 @@
 <?php
-ob_start(); // Captura TODA saída
+ob_start();
 session_start();
 include "config.php";
 
@@ -44,7 +44,7 @@ function gerarNumeroSequencial($conn)
 }
 
 // ===== PROCESSAR PAGAMENTO =====
-if (isset($_POST['processar_pagamento'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) {
     $metodo = $_POST['metodo_pagamento'] ?? '';
     $numero_mesa = isset($_POST['numero_mesa']) && $_POST['numero_mesa'] ? intval($_POST['numero_mesa']) : null;
 
@@ -87,7 +87,7 @@ if (isset($_POST['processar_pagamento'])) {
                     ");
 
                     $stmt->bind_param(
-                        "siisisdsss",
+                        "siiisidss",
                         $numero_pedido,
                         $id_cliente,
                         $numero_mesa,
@@ -106,15 +106,15 @@ if (isset($_POST['processar_pagamento'])) {
                 $conn->commit();
 
                 if ($numero_mesa) {
-                    $msg_sucesso = "🎉 Pedido #$numero_pedido confirmado! Mesa $numero_mesa.";
+                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Mesa $numero_mesa.";
                 } else {
-                    $msg_sucesso = "🎉 Pedido #$numero_pedido confirmado!";
+                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado!";
                 }
 
-                $_SESSION['pagamento_sucesso'] = $msg_sucesso;
-
-                // REDIRECIONAMENTO FORÇADO - MÁXIMA PRIORIDADE
-                die('<html><head><meta charset="UTF-8"><script>window.location.replace("painel_cliente.php");</script></head><body style="font-family:Arial;text-align:center;padding:50px;background:#121212;color:#0ff;"><div style="border:4px solid #333;border-top:4px solid #0ff;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto;"></div><style>@keyframes spin{to{transform:rotate(360deg);}}</style><h2>✅ Pagamento Confirmado!</h2><p>Redirecionando para o cardápio...</p><noscript><meta http-equiv="refresh" content="0;url=painel_cliente.php"></noscript></body></html>');
+                // LIMPAR BUFFER E REDIRECIONAR IMEDIATAMENTE
+                ob_end_clean();
+                header("Location: painel_cliente.php");
+                exit();
 
             } catch (Exception $e) {
                 $conn->rollback();
@@ -161,6 +161,8 @@ while ($item = $itens_carrinho->fetch_assoc()) {
 }
 
 $proximo_numero = gerarNumeroSequencial($conn);
+
+ob_end_flush(); // Libera o buffer para mostrar a página
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -171,6 +173,62 @@ $proximo_numero = gerarNumeroSequencial($conn);
     <link rel="stylesheet" href="css/pagamento.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM carregado - Script iniciado');
+
+            const mesaSalva = localStorage.getItem('numero_mesa');
+            if (mesaSalva) {
+                document.getElementById('numero_mesa').value = mesaSalva;
+            }
+
+            document.getElementById('numero_mesa').addEventListener('input', function () {
+                if (this.value) {
+                    localStorage.setItem('numero_mesa', this.value);
+                } else {
+                    localStorage.removeItem('numero_mesa');
+                }
+            });
+
+            window.selecionarMetodo = function (metodo) {
+                console.log('Método selecionado:', metodo);
+
+                document.getElementById(metodo).checked = true;
+
+                document.querySelectorAll('.area-pagamento').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.metodo-card').forEach(el => el.classList.remove('selected'));
+
+                event.currentTarget.classList.add('selected');
+                document.getElementById('area-' + metodo).style.display = 'block';
+                document.getElementById('btn-confirmar').disabled = false;
+
+                console.log('Botão habilitado');
+            }
+
+            document.getElementById('payment-form').addEventListener('submit', function (e) {
+                console.log('FORMULÁRIO ENVIADO!');
+
+                const metodo = document.querySelector('input[name="metodo_pagamento"]:checked');
+                console.log('Método marcado:', metodo ? metodo.value : 'NENHUM');
+
+                if (!metodo) {
+                    e.preventDefault();
+                    alert('Por favor, selecione um método de pagamento!');
+                    console.log('BLOQUEADO - Nenhum método selecionado');
+                    return false;
+                }
+
+                const btn = document.getElementById('btn-confirmar');
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processando...';
+                btn.disabled = true;
+
+                console.log('Enviando formulário para o servidor...');
+                return true;
+            });
+
+            console.log('Script configurado com sucesso!');
+        });
+    </script>
 </head>
 
 <body>
