@@ -1,7 +1,3 @@
-/* ========================================
-   RESET E ESTILOS GLOBAIS
-   ======================================== */
-
 * {
     margin: 0;
     padding: 0;
@@ -44,9 +40,7 @@ h2 {
     font-size: 22px;
 }
 
-/* ========================================
-   HEADER DO CLIENTE
-   ======================================== */
+
 
 .header-cliente {
     display: flex;
@@ -67,11 +61,7 @@ h2 {
     gap: 10px;
 }
 
-/* ========================================
-   BOTÕES
-   ======================================== */
 
-/* Botão Carrinho */
 .btn-carrinho {
     display: inline-flex;
     align-items: center;
@@ -175,7 +165,7 @@ h2 {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Badge do Carrinho */
+
 .carrinho-badge {
     position: absolute;
     top: -8px;
@@ -226,7 +216,6 @@ h2 {
     }
 }
 
-/* Efeito de brilho no carrinho */
 .btn-carrinho::after {
     content: '';
     position: absolute;
@@ -250,7 +239,7 @@ h2 {
     }
 }
 
-/* Botão Sair */
+
 .btn-sair {
     display: inline-flex;
     align-items: center;
@@ -269,7 +258,7 @@ h2 {
     box-shadow: 0 0 15px #ff4c4c;
 }
 
-/* Botão Comprar */
+
 .btn-comprar {
     width: 100%;
     background: #00cc55;
@@ -293,11 +282,7 @@ h2 {
     transform: scale(1.02);
 }
 
-/* ========================================
-   MENSAGENS E NOTIFICAÇÕES
-   ======================================== */
 
-/* Notificação Principal - NOVA ESTILIZAÇÃO */
 .msg-notification,
 .msg-sucesso-pedido {
     background: linear-gradient(135deg, #1e1e1e, #252525);
@@ -317,7 +302,6 @@ h2 {
     animation: slideInBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), borderPulse 3s ease-in-out infinite 0.6s;
 }
 
-/* Efeito de brilho animado no fundo */
 .msg-notification::before,
 .msg-sucesso-pedido::before {
     content: '';
@@ -372,7 +356,6 @@ h2 {
     }
 }
 
-/* Ícone de check animado */
 .msg-notification i:first-child,
 .msg-sucesso-pedido i:first-child {
     font-size: 28px;
@@ -403,7 +386,6 @@ h2 {
     }
 }
 
-/* Texto da mensagem */
 .msg-notification span,
 .msg-sucesso-pedido span {
     position: relative;
@@ -413,7 +395,6 @@ h2 {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Número do pedido destacado */
 .pedido-numero-destaque {
     color: #0ff !important;
     font-size: 16px;
@@ -442,7 +423,6 @@ h2 {
     }
 }
 
-/* Ícone de fechar */
 .msg-notification .close-msg,
 .msg-sucesso-pedido .close-msg {
     cursor: pointer;
@@ -469,7 +449,6 @@ h2 {
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
-/* Variação para mensagens de erro */
 .msg-notification.msg-error {
     background: linear-gradient(135deg, #ff4c4c, #e53939);
     border-color: #ff6b6b;
@@ -493,7 +472,6 @@ h2 {
     }
 }
 
-/* Animação de saída */
 .msg-notification.fade-out,
 .msg-sucesso-pedido.fade-out {
     animation: fadeOutUp 0.5s ease-out forwards;
@@ -511,7 +489,6 @@ h2 {
     }
 }
 
-/* Mensagem antiga (manter compatibilidade) */
 .msg-sucesso {
     background: #00cc55;
     color: #fff;
@@ -537,9 +514,7 @@ h2 {
     }
 }
 
-/* ========================================
-   PRODUTOS
-   ======================================== */
+
 
 .produtos {
     display: grid;
@@ -605,7 +580,7 @@ h2 {
     margin: 15px 0;
 }
 
-/* Controle de Quantidade */
+
 .qtd-control {
     display: flex;
     align-items: center;
@@ -646,9 +621,6 @@ h2 {
     font-weight: bold;
 }
 
-/* ========================================
-   SEÇÃO MEUS PEDIDOS
-   ======================================== */
 
 #meus-pedidos {
     color: #0ff;
@@ -696,7 +668,6 @@ h2 {
     }
 }
 
-/* Container de Pedidos */
 .pedidos-lista {
     display: flex;
     flex-direction: column;
@@ -704,7 +675,6 @@ h2 {
     animation: fadeIn 0.8s ease-out;
 }
 
-/* Card de Pedido */
 .pedido-card {
     background: linear-gradient(135deg, #1e1e1e, #252525);
     border-radius: 16px;
@@ -800,7 +770,6 @@ h2 {
     }
 }
 
-/* Header do Pedido */
 .pedido-header {
     display: flex;
     justify-content: space-between;
@@ -842,7 +811,7 @@ h2 {
     color: #0ff;
 }
 
-/* Info do Pedido */
+
 .pedido-info {
     display: flex;
     gap: 20px;
@@ -900,7 +869,7 @@ h2 {
     text-shadow: 0 0 10px rgba(0, 212, 212, 0.3);
 }
 
-/* Footer do Pedido */
+
 .pedido-footer {
     display: flex;
     flex-wrap: wrap;
@@ -910,7 +879,7 @@ h2 {
     border-top: 2px solid rgba(0, 255, 255, 0.2);
 }
 
-/* Badges de Status */
+
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -957,7 +926,7 @@ h2 {
     }
 }
 
-/* Status: Pendente */
+
 .status-badge.status-pendente {
     background: linear-gradient(135deg, #ffa500, #ff8c00);
     color: #fff;
@@ -977,7 +946,7 @@ h2 {
     }
 }
 
-/* Status: Em preparo */
+
 .status-badge.status-em-preparo {
     background: linear-gradient(135deg, #ff6b6b, #ff5252);
     color: #fff;
@@ -999,7 +968,7 @@ h2 {
     }
 }
 
-/* Status: Entregando */
+
 .status-badge.status-entregando {
     background: linear-gradient(135deg, #00cc55, #009944);
     color: #fff;
@@ -1019,14 +988,14 @@ h2 {
     }
 }
 
-/* Status: Entregue */
+
 .status-badge.status-entregue {
     background: linear-gradient(135deg, #4da6ff, #3385ff);
     color: #fff;
     box-shadow: 0 5px 20px rgba(77, 166, 255, 0.4);
 }
 
-/* Badges de Pagamento */
+
 .pagamento-badge {
     display: inline-flex;
     align-items: center;
@@ -1074,7 +1043,7 @@ h2 {
     border-radius: 15px;
 }
 
-/* Barra de Progresso */
+
 .progresso-container {
     margin-top: 20px;
     padding-top: 20px;
@@ -1184,7 +1153,6 @@ h2 {
     }
 }
 
-/* Sem Pedidos */
 .sem-pedidos {
     text-align: center;
     padding: 80px 40px;
@@ -1218,10 +1186,6 @@ h2 {
     color: #777;
 }
 
-/* ========================================
-   ANIMAÇÕES GERAIS
-   ======================================== */
-
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -1243,10 +1207,6 @@ h2 {
         transform: translateY(0);
     }
 }
-
-/* ========================================
-   RESPONSIVIDADE
-   ======================================== */
 
 @media (max-width: 768px) {
     .pedido-card {
