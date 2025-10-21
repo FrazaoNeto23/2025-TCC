@@ -446,10 +446,11 @@ form button i {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     justify-content: center;
     align-items: center;
-    z-index: 9999;
+    z-index: 99999;
+    backdrop-filter: blur(5px);
 }
 
 .modal.fade-in {
@@ -485,12 +486,15 @@ form button i {
     padding: 30px;
     border-radius: 15px;
     width: min(92vw, 450px);
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
     border: 2px solid #0ff;
     position: relative;
     transform: scale(0.7);
     opacity: 0;
     animation: modalZoomIn 0.4s forwards;
+    z-index: 100000;
 }
 
 .modal.fade-out .modal-content {
@@ -537,13 +541,21 @@ form button i {
     color: #ff4c4c;
     font-weight: bold;
     transition: all 0.3s ease;
-    z-index: 10;
+    z-index: 100001;
+    background: rgba(0, 0, 0, 0.5);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .close:hover {
     color: #e53939;
     transform: rotate(90deg) scale(1.2);
     text-shadow: 0 0 15px #ff4c4c;
+    background: rgba(255, 76, 76, 0.2);
 }
 
 /* Voltar */
@@ -622,6 +634,7 @@ p a:hover {
 
     .modal-content {
         padding: 20px;
+        width: 95vw;
     }
 }
 

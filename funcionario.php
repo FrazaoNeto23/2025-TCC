@@ -7,13 +7,12 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] !== 'dono') {
     exit;
 }
 
-// CADASTRAR FUNCIONÁRIO - CORRIGIDO
+// CADASTRAR FUNCIONÁRIO
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['acao'] == "cadastrar") {
     $nome = trim($_POST['nome']);
     $email = trim($_POST['email']);
     $senha = $_POST['senha'];
 
-    // Validações
     if (empty($nome) || empty($email) || empty($senha)) {
         $erro = "Todos os campos são obrigatórios!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -21,7 +20,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     } elseif (strlen($senha) < 6) {
         $erro = "Senha deve ter no mínimo 6 caracteres!";
     } else {
-        // Verificar se email já existe
         $stmt_check = $conn->prepare("SELECT id FROM funcionarios WHERE email = ?");
         $stmt_check->bind_param("s", $email);
         $stmt_check->execute();
@@ -53,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     }
 }
 
-// EDITAR FUNCIONÁRIO - CORRIGIDO
+// EDITAR FUNCIONÁRIO
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['acao'] == "editar") {
     $id = intval($_POST['id']);
     $nome = trim($_POST['nome']);
@@ -64,7 +62,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $erro = "Email inválido!";
     } else {
-        // Verificar se email já existe para outro funcionário
         $stmt_check = $conn->prepare("SELECT id FROM funcionarios WHERE email = ? AND id != ?");
         $stmt_check->bind_param("si", $email, $id);
         $stmt_check->execute();
@@ -72,7 +69,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
         if ($stmt_check->get_result()->num_rows > 0) {
             $erro = "Email já cadastrado para outro funcionário!";
         } else {
-            // Buscar foto atual
             $stmt_foto = $conn->prepare("SELECT foto FROM funcionarios WHERE id = ?");
             $stmt_foto->bind_param("i", $id);
             $stmt_foto->execute();
@@ -83,7 +79,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
                 $foto = $result->fetch_assoc()['foto'];
             }
 
-            // Upload nova foto
             if (isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
                 $allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
                 if (in_array($_FILES['foto']['type'], $allowed)) {
@@ -97,7 +92,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
                 }
             }
 
-            // Atualizar com ou sem senha
             if (!empty($_POST['senha'])) {
                 if (strlen($_POST['senha']) < 6) {
                     $erro = "Nova senha deve ter no mínimo 6 caracteres!";
@@ -123,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['acao']) && $_POST['aca
     }
 }
 
-// EXCLUIR FUNCIONÁRIO - CORRIGIDO
+// EXCLUIR FUNCIONÁRIO
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
 
@@ -147,8 +141,13 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// LISTAR FUNCIONÁRIOS - CORRIGIDO
 $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
+$funcionarios = [];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $funcionarios[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -159,6 +158,71 @@ $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
     <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo time() ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 999999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal.show {
+            display: flex !important;
+        }
+
+        .modal-content {
+            position: relative;
+            z-index: 1000000;
+            background: #1c1c1c;
+            padding: 30px;
+            border-radius: 15px;
+            width: min(95vw, 450px);
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
+            border: 3px solid #0ff;
+        }
+
+        .modal-content * {
+            position: relative;
+            z-index: 1000001;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 32px;
+            cursor: pointer;
+            color: #ff4c4c;
+            font-weight: bold;
+            z-index: 1000002;
+            background: rgba(0, 0, 0, 0.8);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            background: rgba(255, 76, 76, 0.3);
+            transform: rotate(90deg) scale(1.3);
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+    </style>
 </head>
 
 <body>
@@ -209,8 +273,8 @@ $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
 
     <h2><i class="fa fa-list"></i> Funcionários Cadastrados</h2>
     <div class="produtos-container">
-        <?php if ($result && $result->num_rows > 0): ?>
-            <?php while ($row = $result->fetch_assoc()): ?>
+        <?php if (!empty($funcionarios)): ?>
+            <?php foreach ($funcionarios as $row): ?>
                 <div class="card-produto">
                     <div class="card-info">
                         <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
@@ -230,36 +294,7 @@ $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
                             onclick="return confirm('Excluir este funcionário?')"><i class="fa fa-trash"></i> Excluir</a>
                     </div>
                 </div>
-
-                <!-- Modal -->
-                <div class="modal" id="modal-<?= $row['id'] ?>">
-                    <div class="modal-content">
-                        <span class="close" onclick="fecharModal(<?= $row['id'] ?>)">&times;</span>
-                        <h2><i class="fa fa-pen"></i> Editar Funcionário</h2>
-                        <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="acao" value="editar">
-                            <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                            <input type="text" name="nome" value="<?= htmlspecialchars($row['nome']) ?>" required
-                                maxlength="100">
-                            <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" required
-                                maxlength="100">
-                            <input type="password" name="senha" placeholder="Nova senha (deixe em branco para manter)"
-                                minlength="6">
-                            <input type="file" name="foto" accept="image/*"
-                                onchange="previewImagem(event, 'preview-<?= $row['id'] ?>')">
-
-                            <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
-                                <img id="preview-<?= $row['id'] ?>" src="uploads/<?= htmlspecialchars($row['foto']) ?>"
-                                    class="foto-funcionario">
-                            <?php else: ?>
-                                <img id="preview-<?= $row['id'] ?>" class="foto-funcionario" style="display:none;">
-                            <?php endif; ?>
-
-                            <button type="submit"><i class="fa fa-save"></i> Salvar Alterações</button>
-                        </form>
-                    </div>
-                </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         <?php else: ?>
             <div style="text-align: center; padding: 60px; background: #1e1e1e; border-radius: 12px; grid-column: 1 / -1;">
                 <i class="fa fa-inbox" style="font-size: 60px; color: #555; margin-bottom: 20px;"></i>
@@ -268,26 +303,59 @@ $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
         <?php endif; ?>
     </div>
 
+    <?php foreach ($funcionarios as $row): ?>
+        <div class="modal" id="modal-<?= $row['id'] ?>">
+            <div class="modal-content">
+                <span class="close" onclick="fecharModal(<?= $row['id'] ?>)">&times;</span>
+                <h2><i class="fa fa-pen"></i> Editar Funcionário</h2>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="acao" value="editar">
+                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                    <input type="text" name="nome" value="<?= htmlspecialchars($row['nome']) ?>" required maxlength="100">
+                    <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" required
+                        maxlength="100">
+                    <input type="password" name="senha" placeholder="Nova senha (deixe em branco para manter)"
+                        minlength="6">
+                    <input type="file" name="foto" accept="image/*"
+                        onchange="previewImagem(event, 'preview-<?= $row['id'] ?>')">
+
+                    <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
+                        <img id="preview-<?= $row['id'] ?>" src="uploads/<?= htmlspecialchars($row['foto']) ?>"
+                            class="foto-funcionario">
+                    <?php else: ?>
+                        <img id="preview-<?= $row['id'] ?>" class="foto-funcionario" style="display:none;">
+                    <?php endif; ?>
+
+                    <button type="submit"><i class="fa fa-save"></i> Salvar Alterações</button>
+                </form>
+            </div>
+        </div>
+    <?php endforeach; ?>
+
     <script>
         function abrirModal(id) {
-            let modal = document.getElementById("modal-" + id);
-            modal.style.display = "flex";
-            modal.classList.remove("fade-out");
-            modal.classList.add("fade-in");
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+
+            const modal = document.getElementById("modal-" + id);
+            modal.classList.add("show");
+            document.body.classList.add("modal-open");
+
+            console.log("Modal aberto:", id);
         }
 
         function fecharModal(id) {
-            let modal = document.getElementById("modal-" + id);
-            modal.classList.remove("fade-in");
-            modal.classList.add("fade-out");
-            setTimeout(() => { modal.style.display = "none"; }, 400);
+            const modal = document.getElementById("modal-" + id);
+            modal.classList.remove("show");
+            document.body.classList.remove("modal-open");
+
+            console.log("Modal fechado:", id);
         }
 
         function previewImagem(event, idPreview) {
-            let preview = document.getElementById(idPreview);
-            let file = event.target.files[0];
+            const preview = document.getElementById(idPreview);
+            const file = event.target.files[0];
             if (file) {
-                let reader = new FileReader();
+                const reader = new FileReader();
                 reader.onload = function (e) {
                     preview.src = e.target.result;
                     preview.style.display = "block";
@@ -295,6 +363,24 @@ $result = $conn->query("SELECT * FROM funcionarios ORDER BY nome ASC");
                 reader.readAsDataURL(file);
             }
         }
+
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('modal')) {
+                const modalId = e.target.id.replace('modal-', '');
+                fecharModal(modalId);
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    const modalId = modal.id.replace('modal-', '');
+                    fecharModal(modalId);
+                });
+            }
+        });
+
+        console.log("Modais encontrados:", document.querySelectorAll('.modal').length);
     </script>
 </body>
 
