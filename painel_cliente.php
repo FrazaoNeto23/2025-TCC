@@ -175,10 +175,43 @@ try {
         </div>
 
         <?php if ($msg): ?>
-            <div class="msg-notification <?= str_contains($msg, '❌') ? 'msg-error' : '' ?>">
+            <div class="msg-sucesso-pedido <?= str_contains($msg, '❌') ? 'msg-error' : '' ?>" id="notification">
                 <i class="fa <?= str_contains($msg, '❌') ? 'fa-exclamation-triangle' : 'fa-check-circle' ?>"></i>
-                <span><?php echo $msg; ?></span>
+                <span>
+                    <?php
+                    // Extrair e estilizar o número do pedido
+                    if (preg_match('/#([\d-]+)/', $msg, $matches)) {
+                        $numero_pedido = $matches[1];
+                        $msg_formatada = str_replace(
+                            "#$numero_pedido",
+                            "<strong class='pedido-numero-destaque'>#$numero_pedido</strong>",
+                            $msg
+                        );
+                        echo $msg_formatada;
+                    } else {
+                        echo $msg;
+                    }
+                    ?>
+                </span>
+                <i class="fa fa-times close-msg" onclick="fecharNotificacao()"></i>
             </div>
+
+            <script>
+                // Auto-fechar após 10 segundos
+                setTimeout(() => {
+                    fecharNotificacao();
+                }, 10000);
+
+                function fecharNotificacao() {
+                    const notification = document.getElementById('notification');
+                    if (notification) {
+                        notification.classList.add('fade-out');
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 500);
+                    }
+                }
+            </script>
         <?php endif; ?>
 
         <!-- Produtos Especiais -->
@@ -261,7 +294,8 @@ try {
                             <h3><?= htmlspecialchars($pd['produto_nome'] ?? 'Produto') ?></h3>
                             <p><i class="fa fa-box"></i> Quantidade: <?= $pd['quantidade'] ?></p>
                             <p class="pedido-total"><i class="fa fa-dollar-sign"></i> Total: R$
-                                <?= number_format($pd['total'], 2, ',', '.') ?></p>
+                                <?= number_format($pd['total'], 2, ',', '.') ?>
+                            </p>
                         </div>
                         <div class="pedido-footer">
                             <span class="status-badge"><?= $pd['status'] ?></span>
@@ -293,18 +327,6 @@ try {
                 input.value = parseInt(input.value) - 1;
             }
         }
-
-        // Auto-hide notifications
-        document.addEventListener('DOMContentLoaded', function () {
-            const notifications = document.querySelectorAll('.msg-notification');
-            notifications.forEach(notification => {
-                setTimeout(() => {
-                    notification.style.opacity = '0';
-                    notification.style.transform = 'translateY(-20px)';
-                    setTimeout(() => notification.remove(), 500);
-                }, 5000);
-            });
-        });
     </script>
 </body>
 
