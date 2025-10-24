@@ -1,0 +1,18 @@
+﻿DIAGNÓSTICO - BURGER HOUSE
+Data: 24/10/2025 15:00:46
+
+PROBLEMAS (0):
+
+
+AVISOS (2):
+• Duplicata: pagamento.php
+• Duplicata: notificacoes.php
+
+
+AMBIENTE:
+• PowerShell: 5.x
+• Política: RemoteSigned
+• Pasta: C:\xampp\htdocs\2025-TCC
+• Arquivos PHP: 26
+• Scripts: 9
+
