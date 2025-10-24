@@ -3,58 +3,133 @@ session_start();
 include "config.php";
 
 $msg = "";
-$msg_tipo = "erro"; // Novo: tipo da mensagem
+$msg_tipo = "erro";
 
 // --- Login ---
 if (isset($_POST['acao']) && $_POST['acao'] == "login") {
-    $email = $_POST['email'];
-    $senha = $_POST['senha'];
 
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $res = $stmt->get_result()->fetch_assoc();
-
-    if ($res && password_verify($senha, $res['senha'])) {
-        $_SESSION['usuario'] = $res['nome'];
-        $_SESSION['id_usuario'] = $res['id'];
-        $_SESSION['tipo'] = $res['tipo'];
-
-        if ($res['tipo'] == "dono") {
-            header("Location: painel_dono.php");
-        } else {
-            header("Location: painel_cliente.php");
-        }
-        exit;
+    // Validar CSRF
+    if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
+        $msg = "Token de segurança inválido!";
+        logSeguranca('csrf_invalido', 'Tentativa de login com token inválido', ['post' => $_POST]);
     } else {
-        $msg = "Email ou senha incorretos!";
-        $msg_tipo = "erro";
+        $email = limparEntrada($_POST['email']);
+        $senha = $_POST['senha'];
+
+        // Validar email
+        if (!validarEmail($email)) {
+            $msg = "Email inválido!";
+        } else {
+            // Verificar rate limiting
+            $rate_check = verificarRateLimit($email);
+
+            if (is_array($rate_check) && isset($rate_check['bloqueado'])) {
+                $msg = "Muitas tentativas. Tente novamente em " . $rate_check['tempo_restante'] . " minutos.";
+                $msg_tipo = "erro";
+
+                logSeguranca('rate_limit', 'Login bloqueado por rate limit', [
+                    'email' => $email,
+                    'tempo_restante' => $rate_check['tempo_restante']
+                ]);
+            } else {
+                // Buscar usuário
+                $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $res = $stmt->get_result()->fetch_assoc();
+
+                if ($res && password_verify($senha, $res['senha'])) {
+                    // Login bem-sucedido
+                    limparRateLimit($email);
+
+                    // Regenerar sessão
+                    session_regenerate_id(true);
+
+                    $_SESSION['usuario'] = $res['nome'];
+                    $_SESSION['id_usuario'] = $res['id'];
+                    $_SESSION['tipo'] = $res['tipo'];
+                    $_SESSION['login_time'] = time();
+
+                    logSeguranca('login_sucesso', 'Login realizado', [
+                        'usuario_id' => $res['id'],
+                        'tipo' => $res['tipo']
+                    ]);
+
+                    if ($res['tipo'] == "dono") {
+                        header("Location: painel_dono.php");
+                    } else {
+                        header("Location: painel_cliente.php");
+                    }
+                    exit;
+                } else {
+                    $msg = "Email ou senha incorretos!";
+                    $msg_tipo = "erro";
+
+                    logSeguranca('login_falhou', 'Tentativa de login falhou', [
+                        'email' => $email
+                    ]);
+                }
+            }
+        }
     }
 }
 
 // --- Cadastro ---
 if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
-    $nome = $_POST['nome'];
-    $email = $_POST['email'];
-    $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
-    $tipo = $_POST['tipo'];
 
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    if ($res->num_rows > 0) {
-        $msg = "Email já cadastrado!";
-        $msg_tipo = "erro";
+    // Validar CSRF
+    if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
+        $msg = "Token de segurança inválido!";
+        logSeguranca('csrf_invalido', 'Tentativa de cadastro com token inválido');
     } else {
-        $stmt = $conn->prepare("INSERT INTO usuarios (nome,email,senha,tipo) VALUES (?,?,?,?)");
-        $stmt->bind_param("ssss", $nome, $email, $senha, $tipo);
-        $stmt->execute();
-        $msg = "Cadastro realizado com sucesso! Faça login.";
-        $msg_tipo = "sucesso"; // Novo: sucesso
+        $nome = limparEntrada($_POST['nome']);
+        $email = limparEntrada($_POST['email']);
+        $senha = $_POST['senha'];
+        $tipo = $_POST['tipo'];
+
+        // Validações
+        if (empty($nome) || empty($email) || empty($senha)) {
+            $msg = "Todos os campos são obrigatórios!";
+        } elseif (!validarEmail($email)) {
+            $msg = "Email inválido!";
+        } elseif (strlen($senha) < 6) {
+            $msg = "Senha deve ter no mínimo 6 caracteres!";
+        } elseif (!in_array($tipo, ['cliente', 'dono'])) {
+            $msg = "Tipo de usuário inválido!";
+        } else {
+            // Verificar se email já existe
+            $stmt = $conn->prepare("SELECT id FROM usuarios WHERE email=?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if ($res->num_rows > 0) {
+                $msg = "Email já cadastrado!";
+                $msg_tipo = "erro";
+            } else {
+                $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+
+                $stmt = $conn->prepare("INSERT INTO usuarios (nome, email, senha, tipo) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("ssss", $nome, $email, $senha_hash, $tipo);
+
+                if ($stmt->execute()) {
+                    $msg = "Cadastro realizado com sucesso! Faça login.";
+                    $msg_tipo = "sucesso";
+
+                    logSeguranca('cadastro_sucesso', 'Novo usuário cadastrado', [
+                        'email' => $email,
+                        'tipo' => $tipo
+                    ]);
+                } else {
+                    $msg = "Erro ao cadastrar. Tente novamente.";
+                }
+            }
+        }
     }
 }
+
+// Gerar novo token CSRF
+$csrf_token = gerarTokenCSRF();
 ?>
 
 <!DOCTYPE html>
@@ -62,7 +137,7 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
 
 <head>
     <meta charset="UTF-8">
-    <title>Acesso</title>
+    <title>Acesso - Burger House</title>
     <link rel="stylesheet" href="css/acesso.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -79,8 +154,9 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
             <form method="POST" class="form-login active">
                 <h2>Login</h2>
                 <input type="hidden" name="acao" value="login">
+                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                 <input type="email" name="email" placeholder="Email" required>
-                <input type="password" name="senha" placeholder="Senha" required>
+                <input type="password" name="senha" placeholder="Senha" required minlength="6">
                 <button type="submit">Entrar</button>
                 <p class="switch" onclick="toggleForms()">Não tem conta? Cadastre-se</p>
             </form>
@@ -89,9 +165,10 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
             <form method="POST" class="form-cadastro">
                 <h2>Cadastro</h2>
                 <input type="hidden" name="acao" value="cadastro">
-                <input type="text" name="nome" placeholder="Nome" required>
+                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                <input type="text" name="nome" placeholder="Nome completo" required maxlength="100">
                 <input type="email" name="email" placeholder="Email" required>
-                <input type="password" name="senha" placeholder="Senha" required>
+                <input type="password" name="senha" placeholder="Senha (mín. 6 caracteres)" required minlength="6">
                 <select name="tipo" required>
                     <option value="">Selecione o tipo</option>
                     <option value="cliente">Cliente</option>

@@ -1,166 +1,477 @@
 <?php
-session_start();
-include "config.php";
+// ========================================
+// CLASSE DE GERENCIAMENTO DE PAGAMENTOS
+// ========================================
 
-if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
-    header("Location: index.php");
-    exit;
-}
+class Pagamento
+{
+    private $conn;
 
-// Processar pagamento
-if (isset($_POST['processar_pagamento'])) {
-    $id_pedido = intval($_POST['id_pedido']);
-    $metodo = $_POST['metodo_pagamento'];
+    public function __construct($conexao)
+    {
+        $this->conn = $conexao;
+    }
 
-    // Atualizar pedido com método de pagamento
-    $stmt = $conn->prepare("UPDATE pedidos SET metodo_pagamento=?, status_pagamento='Pago' WHERE id=?");
-    $stmt->bind_param("si", $metodo, $id_pedido);
-    $stmt->execute();
+    /**
+     * Criar nova transação
+     */
+    public function criarTransacao($id_pedido, $metodo, $valor, $dados_extras = [])
+    {
+        try {
+            $numero_transacao = $this->gerarNumeroTransacao();
+            $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $dados_json = json_encode($dados_extras);
 
-    $_SESSION['pagamento_sucesso'] = "Pagamento realizado com sucesso!";
-    header("Location: painel_cliente.php");
-    exit;
-}
+            $stmt = $this->conn->prepare("
+                INSERT INTO transacoes 
+                (numero_transacao, id_pedido, metodo, valor, ip_cliente, dados_pagamento, status) 
+                VALUES (?, ?, ?, ?, ?, ?, 'pendente')
+            ");
 
-// Verificar se há pedido pendente
-if (!isset($_GET['pedido_id'])) {
-    header("Location: painel_cliente.php");
-    exit;
-}
+            $stmt->bind_param(
+                "sisdss",
+                $numero_transacao,
+                $id_pedido,
+                $metodo,
+                $valor,
+                $ip_cliente,
+                $dados_json
+            );
 
-$id_pedido = intval($_GET['pedido_id']);
-$pedido = $conn->query("SELECT pedidos.*, produtos.nome AS produto_nome 
-                        FROM pedidos 
-                        JOIN produtos ON pedidos.id_produto = produtos.id 
-                        WHERE pedidos.id=$id_pedido AND pedidos.id_cliente=" . $_SESSION['id_usuario'])->fetch_assoc();
+            if ($stmt->execute()) {
+                $id_transacao = $this->conn->insert_id;
 
-if (!$pedido) {
-    header("Location: painel_cliente.php");
-    exit;
-}
-?>
-<!DOCTYPE html>
-<html lang="pt-BR">
+                // Atualizar pedido com id da transação
+                $this->conn->query("
+                    UPDATE pedidos 
+                    SET id_transacao = $id_transacao, valor_final = $valor 
+                    WHERE id = $id_pedido
+                ");
 
-<head>
-    <meta charset="UTF-8">
-    <title>Pagamento</title>
-    <link rel="stylesheet" href="css/pagamento.css?e=<?php echo rand(0, 10000) ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
+                logSeguranca('pagamento', "Transação criada: $numero_transacao", [
+                    'id_transacao' => $id_transacao,
+                    'metodo' => $metodo,
+                    'valor' => $valor
+                ]);
 
-<body>
-    <div class="container">
-        <a href="painel_cliente.php" class="btn-voltar"><i class="fa fa-arrow-left"></i> Voltar</a>
+                return [
+                    'sucesso' => true,
+                    'id_transacao' => $id_transacao,
+                    'numero_transacao' => $numero_transacao
+                ];
+            }
 
-        <h1><i class="fa fa-credit-card"></i> Finalizar Pagamento</h1>
+            return ['sucesso' => false, 'erro' => 'Erro ao criar transação'];
 
-        <div class="pedido-resumo">
-            <h2>Resumo do Pedido</h2>
-            <p><strong>Produto:</strong> <?= $pedido['produto_nome'] ?></p>
-            <p><strong>Quantidade:</strong> <?= $pedido['quantidade'] ?></p>
-            <p class="total"><strong>Total:</strong> R$ <?= number_format($pedido['total'], 2, ',', '.') ?></p>
-        </div>
+        } catch (Exception $e) {
+            error_log("Erro ao criar transação: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao processar pagamento'];
+        }
+    }
 
-        <div class="metodos-pagamento">
-            <h2>Escolha o método de pagamento</h2>
+    /**
+     * Processar pagamento PIX
+     */
+    public function processarPIX($id_transacao)
+    {
+        try {
+            // Obter dados da transação
+            $stmt = $this->conn->prepare("SELECT * FROM transacoes WHERE id = ?");
+            $stmt->bind_param("i", $id_transacao);
+            $stmt->execute();
+            $transacao = $stmt->get_result()->fetch_assoc();
 
-            <div class="metodo-card" onclick="selecionarMetodo('pix')">
-                <input type="radio" name="metodo" id="pix" value="pix">
-                <label for="pix">
-                    <i class="fa fa-qrcode"></i>
-                    <span>PIX</span>
-                </label>
-            </div>
+            if (!$transacao) {
+                return ['sucesso' => false, 'erro' => 'Transação não encontrada'];
+            }
 
-            <div class="metodo-card" onclick="selecionarMetodo('cartao')">
-                <input type="radio" name="metodo" id="cartao" value="cartao">
-                <label for="cartao">
-                    <i class="fa fa-credit-card"></i>
-                    <span>Cartão de Crédito</span>
-                </label>
-            </div>
+            // Gerar QR Code e chave PIX (simulado)
+            $chave_pix = $this->gerarChavePIX($transacao);
+            $qr_code_url = $this->gerarQRCodePIX($chave_pix);
 
-            <div class="metodo-card" onclick="selecionarMetodo('dinheiro')">
-                <input type="radio" name="metodo" id="dinheiro" value="dinheiro">
-                <label for="dinheiro">
-                    <i class="fa fa-money-bill"></i>
-                    <span>Dinheiro</span>
-                </label>
-            </div>
-        </div>
+            // Atualizar transação
+            $stmt = $this->conn->prepare("
+                UPDATE transacoes 
+                SET status = 'processando',
+                    dados_pagamento = JSON_SET(
+                        COALESCE(dados_pagamento, '{}'),
+                        '$.chave_pix', ?,
+                        '$.qr_code', ?
+                    )
+                WHERE id = ?
+            ");
 
-        <!-- Área PIX -->
-        <div id="area-pix" class="area-pagamento" style="display:none;">
-            <h3>Pagamento via PIX</h3>
-            <div class="qrcode-container">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PIX-BURGUERHOUSE-<?= $id_pedido ?>"
-                    alt="QR Code PIX">
-            </div>
-            <p class="instrucao">Escaneie o QR Code com seu app de pagamento</p>
-            <p class="codigo-pix">Código: <strong>PIX-BURGUER-<?= $id_pedido ?></strong></p>
-        </div>
+            $stmt->bind_param("ssi", $chave_pix, $qr_code_url, $id_transacao);
+            $stmt->execute();
 
-        <!-- Área Cartão -->
-        <div id="area-cartao" class="area-pagamento" style="display:none;">
-            <h3>Dados do Cartão</h3>
-            <form id="form-cartao">
-                <input type="text" placeholder="Número do Cartão" maxlength="19" id="numero-cartao" required>
-                <input type="text" placeholder="Nome no Cartão" required>
-                <div class="inline-inputs">
-                    <input type="text" placeholder="Validade (MM/AA)" maxlength="5" required>
-                    <input type="text" placeholder="CVV" maxlength="3" required>
-                </div>
-            </form>
-        </div>
+            return [
+                'sucesso' => true,
+                'chave_pix' => $chave_pix,
+                'qr_code' => $qr_code_url
+            ];
 
-        <!-- Área Dinheiro -->
-        <div id="area-dinheiro" class="area-pagamento" style="display:none;">
-            <h3>Pagamento em Dinheiro</h3>
-            <p class="instrucao">Você pagará na entrega</p>
-            <label>Precisa de troco?</label>
-            <input type="number" step="0.01" placeholder="Troco para quanto?" id="troco">
-        </div>
+        } catch (Exception $e) {
+            error_log("Erro ao processar PIX: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao gerar PIX'];
+        }
+    }
 
-        <form method="POST" id="form-final">
-            <input type="hidden" name="id_pedido" value="<?= $id_pedido ?>">
-            <input type="hidden" name="metodo_pagamento" id="metodo_selecionado">
-            <button type="submit" name="processar_pagamento" id="btn-confirmar" disabled>
-                <i class="fa fa-check"></i> Confirmar Pagamento
-            </button>
-        </form>
-    </div>
+    /**
+     * Processar pagamento com Cartão
+     */
+    public function processarCartao($id_transacao, $dados_cartao)
+    {
+        try {
+            // Validar dados do cartão
+            $validacao = $this->validarDadosCartao($dados_cartao);
+            if (!$validacao['valido']) {
+                return ['sucesso' => false, 'erro' => $validacao['erro']];
+            }
 
-    <script>
-        function selecionarMetodo(metodo) {
-            // Marca o radio
-            document.getElementById(metodo).checked = true;
-            document.getElementById('metodo_selecionado').value = metodo;
+            // Obter transação
+            $stmt = $this->conn->prepare("SELECT * FROM transacoes WHERE id = ?");
+            $stmt->bind_param("i", $id_transacao);
+            $stmt->execute();
+            $transacao = $stmt->get_result()->fetch_assoc();
 
-            // Esconde todas as áreas
-            document.querySelectorAll('.area-pagamento').forEach(el => el.style.display = 'none');
+            if (!$transacao) {
+                return ['sucesso' => false, 'erro' => 'Transação não encontrada'];
+            }
 
-            // Remove seleção visual
-            document.querySelectorAll('.metodo-card').forEach(el => el.classList.remove('selected'));
+            // Integração com gateway (simulado)
+            $resultado_gateway = $this->processarGatewayCartao($transacao, $dados_cartao);
 
-            // Adiciona seleção visual
-            event.currentTarget.classList.add('selected');
+            if ($resultado_gateway['aprovado']) {
+                // Confirmar pagamento
+                $this->confirmarPagamento($id_transacao, $resultado_gateway['codigo_autorizacao']);
 
-            // Mostra área correspondente
-            document.getElementById('area-' + metodo).style.display = 'block';
+                return [
+                    'sucesso' => true,
+                    'codigo_autorizacao' => $resultado_gateway['codigo_autorizacao']
+                ];
+            } else {
+                // Pagamento recusado
+                $this->recusarPagamento($id_transacao, $resultado_gateway['motivo']);
 
-            // Habilita botão
-            document.getElementById('btn-confirmar').disabled = false;
+                return [
+                    'sucesso' => false,
+                    'erro' => $resultado_gateway['motivo']
+                ];
+            }
+
+        } catch (Exception $e) {
+            error_log("Erro ao processar cartão: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao processar cartão'];
+        }
+    }
+
+    /**
+     * Confirmar pagamento
+     */
+    public function confirmarPagamento($id_transacao, $codigo_autorizacao = null)
+    {
+        try {
+            $stmt = $this->conn->prepare("
+                UPDATE transacoes 
+                SET status = 'confirmado',
+                    codigo_autorizacao = ?,
+                    data_confirmacao = NOW()
+                WHERE id = ?
+            ");
+
+            $stmt->bind_param("si", $codigo_autorizacao, $id_transacao);
+            $stmt->execute();
+
+            // Atualizar pedido
+            $this->conn->query("
+                UPDATE pedidos p
+                JOIN transacoes t ON p.id_transacao = t.id
+                SET p.status_pagamento = 'Pago'
+                WHERE t.id = $id_transacao
+            ");
+
+            logSeguranca('pagamento', "Pagamento confirmado", [
+                'id_transacao' => $id_transacao,
+                'codigo' => $codigo_autorizacao
+            ]);
+
+            return ['sucesso' => true];
+
+        } catch (Exception $e) {
+            error_log("Erro ao confirmar pagamento: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao confirmar'];
+        }
+    }
+
+    /**
+     * Cancelar/Estornar pagamento
+     */
+    public function estornarPagamento($id_transacao, $motivo)
+    {
+        try {
+            $stmt = $this->conn->prepare("
+                UPDATE transacoes 
+                SET status = 'estornado',
+                    observacoes = CONCAT(COALESCE(observacoes, ''), ' | Estorno: ', ?)
+                WHERE id = ?
+            ");
+
+            $stmt->bind_param("si", $motivo, $id_transacao);
+            $stmt->execute();
+
+            // Atualizar pedido
+            $this->conn->query("
+                UPDATE pedidos p
+                JOIN transacoes t ON p.id_transacao = t.id
+                SET p.status_pagamento = 'Estornado'
+                WHERE t.id = $id_transacao
+            ");
+
+            logSeguranca('pagamento', "Pagamento estornado", [
+                'id_transacao' => $id_transacao,
+                'motivo' => $motivo
+            ]);
+
+            return ['sucesso' => true];
+
+        } catch (Exception $e) {
+            error_log("Erro ao estornar: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao estornar'];
+        }
+    }
+
+    /**
+     * Aplicar cupom de desconto
+     */
+    public function aplicarCupom($codigo, $id_usuario, $valor_pedido)
+    {
+        try {
+            $stmt = $this->conn->prepare("
+                SELECT * FROM cupons 
+                WHERE codigo = ? 
+                AND ativo = TRUE
+                AND (quantidade_total IS NULL OR quantidade_usada < quantidade_total)
+                AND (data_inicio IS NULL OR data_inicio <= CURDATE())
+                AND (data_fim IS NULL OR data_fim >= CURDATE())
+            ");
+
+            $stmt->bind_param("s", $codigo);
+            $stmt->execute();
+            $cupom = $stmt->get_result()->fetch_assoc();
+
+            if (!$cupom) {
+                return ['sucesso' => false, 'erro' => 'Cupom inválido ou expirado'];
+            }
+
+            // Verificar valor mínimo
+            if ($valor_pedido < $cupom['valor_minimo']) {
+                return [
+                    'sucesso' => false,
+                    'erro' => 'Valor mínimo do pedido: R$ ' . number_format($cupom['valor_minimo'], 2, ',', '.')
+                ];
+            }
+
+            // Calcular desconto
+            if ($cupom['tipo'] === 'percentual') {
+                $desconto = ($valor_pedido * $cupom['valor']) / 100;
+            } else {
+                $desconto = $cupom['valor'];
+            }
+
+            // Não pode ser maior que o valor do pedido
+            $desconto = min($desconto, $valor_pedido);
+
+            return [
+                'sucesso' => true,
+                'id_cupom' => $cupom['id'],
+                'desconto' => $desconto,
+                'valor_final' => $valor_pedido - $desconto
+            ];
+
+        } catch (Exception $e) {
+            error_log("Erro ao aplicar cupom: " . $e->getMessage());
+            return ['sucesso' => false, 'erro' => 'Erro ao validar cupom'];
+        }
+    }
+
+    /**
+     * Registrar uso de cupom
+     */
+    public function registrarUsoCupom($id_cupom, $id_usuario, $id_pedido, $valor_desconto)
+    {
+        try {
+            $stmt = $this->conn->prepare("
+                INSERT INTO cupons_usados (id_cupom, id_usuario, id_pedido, valor_desconto) 
+                VALUES (?, ?, ?, ?)
+            ");
+
+            $stmt->bind_param("iiid", $id_cupom, $id_usuario, $id_pedido, $valor_desconto);
+            $stmt->execute();
+
+            return ['sucesso' => true];
+
+        } catch (Exception $e) {
+            error_log("Erro ao registrar cupom: " . $e->getMessage());
+            return ['sucesso' => false];
+        }
+    }
+
+    /**
+     * Obter histórico de transações
+     */
+    public function obterHistorico($filtros = [])
+    {
+        $where = [];
+        $params = [];
+        $types = "";
+
+        if (!empty($filtros['id_pedido'])) {
+            $where[] = "t.id_pedido = ?";
+            $params[] = $filtros['id_pedido'];
+            $types .= "i";
         }
 
-        // Formatação do número do cartão
-        document.getElementById('numero-cartao')?.addEventListener('input', function (e) {
-            let value = e.target.value.replace(/\s/g, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
-        });
-    </script>
-</body>
+        if (!empty($filtros['status'])) {
+            $where[] = "t.status = ?";
+            $params[] = $filtros['status'];
+            $types .= "s";
+        }
 
-</html>
+        if (!empty($filtros['metodo'])) {
+            $where[] = "t.metodo = ?";
+            $params[] = $filtros['metodo'];
+            $types .= "s";
+        }
+
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = "DATE(t.data_criacao) >= ?";
+            $params[] = $filtros['data_inicio'];
+            $types .= "s";
+        }
+
+        if (!empty($filtros['data_fim'])) {
+            $where[] = "DATE(t.data_criacao) <= ?";
+            $params[] = $filtros['data_fim'];
+            $types .= "s";
+        }
+
+        $where_sql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
+
+        $sql = "
+            SELECT t.*, 
+                   p.numero_pedido,
+                   u.nome as cliente_nome
+            FROM transacoes t
+            JOIN pedidos p ON t.id_pedido = p.id
+            JOIN usuarios u ON p.id_cliente = u.id
+            $where_sql
+            ORDER BY t.data_criacao DESC
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    // ========================================
+    // MÉTODOS AUXILIARES PRIVADOS
+    // ========================================
+
+    private function gerarNumeroTransacao()
+    {
+        return 'TXN' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -8));
+    }
+
+    private function gerarChavePIX($transacao)
+    {
+        return 'PIX-BH-' . $transacao['id'] . '-' . time();
+    }
+
+    private function gerarQRCodePIX($chave)
+    {
+        return "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($chave);
+    }
+
+    private function validarDadosCartao($dados)
+    {
+        if (empty($dados['numero']) || empty($dados['cvv']) || empty($dados['validade'])) {
+            return ['valido' => false, 'erro' => 'Dados do cartão incompletos'];
+        }
+
+        // Validar número do cartão (Luhn)
+        $numero = preg_replace('/\s+/', '', $dados['numero']);
+        if (!$this->validarLuhn($numero)) {
+            return ['valido' => false, 'erro' => 'Número do cartão inválido'];
+        }
+
+        return ['valido' => true];
+    }
+
+    private function validarLuhn($numero)
+    {
+        $soma = 0;
+        $tamanho = strlen($numero);
+        $paridade = $tamanho % 2;
+
+        for ($i = 0; $i < $tamanho; $i++) {
+            $digito = intval($numero[$i]);
+
+            if ($i % 2 == $paridade) {
+                $digito *= 2;
+            }
+
+            if ($digito > 9) {
+                $digito -= 9;
+            }
+
+            $soma += $digito;
+        }
+
+        return ($soma % 10) == 0;
+    }
+
+    private function processarGatewayCartao($transacao, $dados_cartao)
+    {
+        // SIMULAÇÃO - Em produção, integrar com gateway real (Mercado Pago, PagSeguro, etc)
+
+        // Simular aprovação (80% de chance)
+        $aprovado = (rand(1, 100) <= 80);
+
+        if ($aprovado) {
+            return [
+                'aprovado' => true,
+                'codigo_autorizacao' => 'AUTH-' . strtoupper(uniqid())
+            ];
+        } else {
+            $motivos = [
+                'Saldo insuficiente',
+                'Cartão bloqueado',
+                'Dados inválidos',
+                'Limite excedido'
+            ];
+
+            return [
+                'aprovado' => false,
+                'motivo' => $motivos[array_rand($motivos)]
+            ];
+        }
+    }
+
+    private function recusarPagamento($id_transacao, $motivo)
+    {
+        $stmt = $this->conn->prepare("
+            UPDATE transacoes 
+            SET status = 'cancelado',
+                observacoes = ?
+            WHERE id = ?
+        ");
+
+        $stmt->bind_param("si", $motivo, $id_transacao);
+        $stmt->execute();
+    }
+}
