@@ -1,7 +1,7 @@
 <?php
-ob_start();
+require_once __DIR__ . '/../config/paths.php';
 session_start();
-include "config.php";
+require_once CONFIG_PATH . '/config.php';  // ✅ CORRETO
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");

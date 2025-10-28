@@ -1,55 +1,37 @@
 ﻿<?php
-require_once __DIR__ . '/../config/paths.php';
-session_start();
-require_once CONFIG_PATH . "/config.php";
-include "notificacoes.php";
+// api/api_notificacoes.php
 
-header('Content-Type: application/json');
-
-if (!isset($_SESSION['usuario'])) {
-    echo json_encode(['sucesso' => false, 'erro' => 'Não autorizado']);
-    exit;
+// Verifica se a sessão já foi iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$notif = new Notificacoes($conn);
+// Inclui o arquivo de notificações com caminho correto
+require_once __DIR__ . '/../includes/notificacoes.php';
 
-// Inicializar tabelas se necessário
-$notif->inicializar();
-
-$acao = $_GET['acao'] ?? 'buscar';
-
-switch ($acao) {
-    case 'buscar':
-        $notificacoes = $notif->buscarNaoLidas(
-            $_SESSION['id_usuario'] ?? null,
-            $_SESSION['tipo'] ?? null
-        );
+// Verifica se a requisição é POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    
+    // Verifica se existe a classe Notificacoes
+    if (!class_exists('Notificacoes')) {
+        http_response_code(500);
         echo json_encode([
-            'sucesso' => true,
-            'notificacoes' => $notificacoes,
-            'total' => count($notificacoes)
+            'success' => false,
+            'message' => 'Classe Notificacoes não encontrada'
         ]);
-        break;
-
-    case 'contar':
-        $total = $notif->contarNaoLidas(
-            $_SESSION['id_usuario'] ?? null,
-            $_SESSION['tipo'] ?? null
-        );
-        echo json_encode([
-            'sucesso' => true,
-            'total' => $total
-        ]);
-        break;
-
-    case 'marcar_lida':
-        $id = intval($_POST['id'] ?? 0);
-        $resultado = $notif->marcarComoLida($id);
-        echo json_encode([
-            'sucesso' => $resultado
-        ]);
-        break;
-
-    default:
-        echo json_encode(['sucesso' => false, 'erro' => 'Ação inválida']);
+        exit;
+    }
+    
+    $notificacoes = new Notificacoes();
+    
+    // Aqui vai o resto da lógica da API
+    // ...
+    
+} else {
+    http_response_code(405);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Método não permitido'
+    ]);
 }
+?>

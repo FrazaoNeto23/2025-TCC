@@ -1,33 +1,120 @@
 <?php
-// ========================================
-// EXEMPLO DE INTEGRAÇÃO COMPLETA - FASE 2
-// Painel do Dono com todas as funcionalidades
-// ========================================
+// ====================================
+// PAINEL DO DONO - BURGER HOUSE
+// ====================================
 
-session_start();
-require_once 'config.php';
-require_once 'notificacoes.php';
-require_once 'gestor_pedidos.php';
-require_once 'fila_impressao.php';
+// Definir caminhos base
+define('BASE_PATH', dirname(__DIR__));
+define('CONFIG_PATH', BASE_PATH . '/config');
+define('PUBLIC_PATH', BASE_PATH . '/public');
+define('INCLUDES_PATH', BASE_PATH . '/includes');
+define('UPLOADS_PATH', BASE_PATH . '/uploads');
+define('ASSETS_PATH', BASE_PATH . '/assets');
 
-// Verificar se é dono
-if (!isset($_SESSION['usuario_id']) || $_SESSION['usuario_tipo'] != 'dono') {
-    header('Location: index.php');
+// URLs base
+define('BASE_URL', 'http://localhost/2025-TCC');
+define('PUBLIC_URL', BASE_URL . '/public');
+define('ASSETS_URL', BASE_URL . '/assets');
+define('UPLOADS_URL', BASE_URL . '/uploads');
+
+// Carregar config.php (que já inicia sessão e conecta BD)
+require_once CONFIG_PATH . '/config.php';
+
+// Carregar classes necessárias
+require_once BASE_PATH . '/includes/notificacoes.php';
+
+// Verificar se arquivos de gestão existem
+$gestor_pedidos_file = __DIR__ . '/gestor_pedidos.php';
+$fila_impressao_file = __DIR__ . '/fila_impressao.php';
+
+if (file_exists($gestor_pedidos_file)) {
+    require_once $gestor_pedidos_file;
+}
+
+if (file_exists($fila_impressao_file)) {
+    require_once $fila_impressao_file;
+}
+
+// ====================================
+// VERIFICAÇÕES DE SEGURANÇA
+// ====================================
+
+// Verificar se o usuário está logado
+if (!isset($_SESSION['user_id']) && !isset($_SESSION['usuario_id'])) {
+    header('Location: ' . BASE_URL . '/login');
     exit;
 }
 
-// Inicializar sistemas
-$notificacoes = new Notificacoes($conn);
-$gestor = new GestorPedidos($conn);
-$fila = new FilaImpressao($conn);
+// Padronizar variáveis de sessão
+$user_id = $_SESSION['user_id'] ?? $_SESSION['usuario_id'];
+$user_tipo = $_SESSION['tipo'] ?? $_SESSION['usuario_tipo'];
 
-// Buscar dados para o dashboard
-$pedidos_pendentes = $gestor->buscarPedidos(['status' => 'Pendente']);
-$pedidos_preparando = $gestor->buscarPedidos(['status' => 'Preparando']);
-$total_hoje = $conn->query("SELECT COUNT(*) as total FROM pedidos WHERE DATE(data_pedido) = CURDATE()")->fetch_assoc()['total'];
+// Verificar se é dono
+if ($user_tipo !== 'dono') {
+    header('Location: ' . BASE_URL . '/home');
+    exit;
+}
 
-// Buscar resumo da fila de impressão
-$status_fila = $fila->statusFila();
+// ====================================
+// INICIALIZAR SISTEMAS
+// ====================================
+
+try {
+    // Inicializar notificações
+    $notificacoes = new Notificacoes($conn);
+
+    // Inicializar gestor de pedidos (se a classe existir)
+    $gestor = null;
+    if (class_exists('GestorPedidos')) {
+        $gestor = new GestorPedidos($conn);
+    }
+
+    // Inicializar fila de impressão (se a classe existir)
+    $fila = null;
+    if (class_exists('FilaImpressao')) {
+        $fila = new FilaImpressao($conn);
+    }
+
+} catch (Exception $e) {
+    error_log("Erro ao inicializar sistemas: " . $e->getMessage());
+    die("Erro ao carregar painel. Contate o administrador.");
+}
+
+// ====================================
+// BUSCAR DADOS PARA O DASHBOARD
+// ====================================
+
+// Buscar pedidos pendentes
+$pedidos_pendentes = [];
+if ($gestor) {
+    $pedidos_pendentes = $gestor->buscarPedidos(['status' => 'Pendente']);
+}
+
+// Buscar pedidos em preparo
+$pedidos_preparando = [];
+if ($gestor) {
+    $pedidos_preparando = $gestor->buscarPedidos(['status' => 'Preparando']);
+}
+
+// Total de pedidos hoje
+$total_hoje = 0;
+$sql_total = "SELECT COUNT(*) as total FROM pedidos WHERE DATE(data_pedido) = CURDATE()";
+$result_total = $conn->query($sql_total);
+if ($result_total) {
+    $row = $result_total->fetch_assoc();
+    $total_hoje = $row['total'];
+}
+
+// Status da fila de impressão
+$status_fila = [];
+$total_fila = 0;
+if ($fila) {
+    $status_fila = $fila->statusFila();
+    $total_fila = array_sum(array_column($status_fila, 'quantidade'));
+}
+
+// Nome do usuário
+$user_name = $_SESSION['nome'] ?? $_SESSION['usuario_nome'] ?? 'Dono';
 ?>
 
 <!DOCTYPE html>
@@ -53,8 +140,13 @@ $status_fila = $fila->statusFila();
             --secondary-color: #f7931e;
         }
 
+        body {
+            background-color: #f8f9fa;
+        }
+
         .navbar {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .card {
@@ -62,6 +154,11 @@ $status_fila = $fila->statusFila();
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
         }
 
         .card-header {
@@ -75,31 +172,61 @@ $status_fila = $fila->statusFila();
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             text-align: center;
-            padding: 20px;
+            padding: 25px;
             border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
         }
 
         .metric-value {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
 
         .pedido-card {
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .pedido-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
         .status-badge {
             border-radius: 25px;
             padding: 8px 16px;
+            font-weight: 500;
         }
 
         .btn-action {
-            margin: 2px;
+            margin: 5px;
             border-radius: 20px;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-tabs .nav-link {
+            border-radius: 10px 10px 0 0;
+            font-weight: 500;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(255, 107, 53, 0.05);
         }
     </style>
 </head>
@@ -107,23 +234,33 @@ $status_fila = $fila->statusFila();
 <body data-usuario-logado="true">
     <!-- Navegação -->
     <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-crown"></i> Painel do Dono
+        <div class="container-fluid">
+            <a class="navbar-brand" href="<?php echo BASE_URL; ?>/painel_dono">
+                <i class="fas fa-crown"></i> Painel do Dono - Burger House
             </a>
 
-            <div class="navbar-nav ms-auto">
-                <!-- O sino de notificações será criado automaticamente aqui -->
-                <li class="nav-item">
-                    <a class="nav-link" href="relatorios.html">
-                        <i class="fas fa-chart-line"></i> Relatórios
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="logout.php">
-                        <i class="fas fa-sign-out-alt"></i> Sair
-                    </a>
-                </li>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo BASE_URL; ?>/relatorios">
+                            <i class="fas fa-chart-line"></i> Relatórios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo BASE_URL; ?>/logout">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -132,36 +269,37 @@ $status_fila = $fila->statusFila();
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item active">Painel</li>
+                <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>">Home</a></li>
+                <li class="breadcrumb-item active">Painel do Dono</li>
             </ol>
         </nav>
 
         <!-- Métricas Rápidas -->
         <div class="row mb-4">
-            <div class="col-md-3">
+            <div class="col-md-3 col-sm-6 mb-3">
                 <div class="metric-card">
                     <div class="metric-value"><?= count($pedidos_pendentes) ?></div>
-                    <div>Pedidos Pendentes</div>
+                    <div class="metric-label">Pedidos Pendentes</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 col-sm-6 mb-3">
                 <div class="metric-card" style="background: linear-gradient(135deg, #28a745, #20c997);">
                     <div class="metric-value"><?= count($pedidos_preparando) ?></div>
-                    <div>Em Preparo</div>
+                    <div class="metric-label">Em Preparo</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 col-sm-6 mb-3">
                 <div class="metric-card" style="background: linear-gradient(135deg, #17a2b8, #20c997);">
                     <div class="metric-value"><?= $total_hoje ?></div>
-                    <div>Pedidos Hoje</div>
+                    <div class="metric-label">Pedidos Hoje</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 col-sm-6 mb-3">
                 <div class="metric-card" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
                     <div class="metric-value" id="filaImpressao">
-                        <?= array_sum(array_column($status_fila, 'quantidade')) ?>
+                        <?= $total_fila ?>
                     </div>
-                    <div>Fila Impressão</div>
+                    <div class="metric-label">Fila Impressão</div>
                 </div>
             </div>
         </div>
@@ -171,18 +309,24 @@ $status_fila = $fila->statusFila();
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <i class="fas fa-lightning-bolt"></i> Ações Rápidas
+                        <i class="fas fa-bolt"></i> Ações Rápidas
                     </div>
-                    <div class="card-body">
-                        <button class="btn btn-primary btn-action" onclick="processarFilaImpressao()">
-                            <i class="fas fa-print"></i> Processar Fila de Impressão
-                        </button>
-                        <button class="btn btn-success btn-action" onclick="window.open('relatorios.html', '_blank')">
+                    <div class="card-body text-center">
+                        <?php if ($fila): ?>
+                            <button class="btn btn-primary btn-action" onclick="processarFilaImpressao()">
+                                <i class="fas fa-print"></i> Processar Fila de Impressão
+                            </button>
+                        <?php endif; ?>
+
+                        <button class="btn btn-success btn-action"
+                            onclick="window.location.href='<?php echo BASE_URL; ?>/relatorios'">
                             <i class="fas fa-chart-line"></i> Ver Relatórios
                         </button>
-                        <button class="btn btn-info btn-action" onclick="verificarNotificacoes()">
-                            <i class="fas fa-refresh"></i> Atualizar Notificações
+
+                        <button class="btn btn-info btn-action" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> Atualizar Painel
                         </button>
+
                         <button class="btn btn-warning btn-action" onclick="exportarRelatorioRapido()">
                             <i class="fas fa-download"></i> Exportar Vendas Hoje
                         </button>
@@ -210,180 +354,135 @@ $status_fila = $fila->statusFila();
             </li>
         </ul>
 
-        <div class="tab-content" id="pedidosTabContent">
-            <!-- Pedidos Pendentes -->
+        <!-- Conteúdo das Tabs -->
+        <div class="tab-content p-4 bg-white rounded-bottom shadow-sm" id="pedidosTabsContent">
+            <!-- Tab Pendentes -->
             <div class="tab-pane fade show active" id="pendentes" role="tabpanel">
-                <div class="row mt-3">
-                    <?php foreach ($pedidos_pendentes as $pedido): ?>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card pedido-card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <span><strong>Pedido #<?= $pedido['id'] ?></strong></span>
-                                    <span class="badge bg-warning status-badge">Pendente</span>
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Cliente:</strong> <?= htmlspecialchars($pedido['cliente_nome']) ?></p>
-                                    <p><strong>Total:</strong> R$ <?= number_format($pedido['valor_total'], 2, ',', '.') ?>
-                                    </p>
-                                    <p><strong>Horário:</strong> <?= date('H:i', strtotime($pedido['data_pedido'])) ?></p>
-
-                                    <?php if ($pedido['observacoes_cliente']): ?>
-                                        <p><strong>Obs:</strong>
-                                            <em><?= htmlspecialchars($pedido['observacoes_cliente']) ?></em></p>
-                                    <?php endif; ?>
-
-                                    <!-- Ações -->
-                                    <div class="btn-group w-100" role="group">
-                                        <button class="btn btn-success btn-sm"
-                                            onclick="confirmarPedido(<?= $pedido['id'] ?>)">
-                                            <i class="fas fa-check"></i> Confirmar
-                                        </button>
-                                        <button class="btn btn-info btn-sm" onclick="verDetalhes(<?= $pedido['id'] ?>)">
-                                            <i class="fas fa-eye"></i> Detalhes
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm"
-                                            onclick="imprimirPedido(<?= $pedido['id'] ?>)">
-                                            <i class="fas fa-print"></i> Imprimir
-                                        </button>
-                                    </div>
-
-                                    <!-- Prioridade -->
-                                    <div class="mt-2">
-                                        <select class="form-select form-select-sm"
-                                            onchange="alterarPrioridade(<?= $pedido['id'] ?>, this.value)">
-                                            <option value="baixa" <?= ($pedido['prioridade'] ?? 'media') == 'baixa' ? 'selected' : '' ?>>Baixa</option>
-                                            <option value="media" <?= ($pedido['prioridade'] ?? 'media') == 'media' ? 'selected' : '' ?>>Média</option>
-                                            <option value="alta" <?= ($pedido['prioridade'] ?? 'media') == 'alta' ? 'selected' : '' ?>>Alta</option>
-                                            <option value="urgente" <?= ($pedido['prioridade'] ?? 'media') == 'urgente' ? 'selected' : '' ?>>Urgente</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-
-                    <?php if (empty($pedidos_pendentes)): ?>
-                        <div class="col-12">
-                            <div class="alert alert-info text-center">
-                                <i class="fas fa-info-circle"></i> Nenhum pedido pendente no momento
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Pedidos Preparando -->
-            <div class="tab-pane fade" id="preparando" role="tabpanel">
-                <div class="row mt-3">
-                    <?php foreach ($pedidos_preparando as $pedido): ?>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card pedido-card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <span><strong>Pedido #<?= $pedido['id'] ?></strong></span>
-                                    <span class="badge bg-warning status-badge">Preparando</span>
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Cliente:</strong> <?= htmlspecialchars($pedido['cliente_nome']) ?></p>
-                                    <p><strong>Tempo estimado:</strong> <?= $pedido['tempo_estimado'] ?? 30 ?> min</p>
-
-                                    <!-- Barra de progresso baseada no tempo -->
-                                    <?php
-                                    $inicio = strtotime($pedido['data_pedido']);
-                                    $agora = time();
-                                    $tempo_decorrido = ($agora - $inicio) / 60; // em minutos
-                                    $progresso = min(100, ($tempo_decorrido / ($pedido['tempo_estimado'] ?? 30)) * 100);
-                                    ?>
-                                    <div class="progress mb-2">
-                                        <div class="progress-bar" role="progressbar" style="width: <?= $progresso ?>%">
-                                            <?= round($progresso) ?>%
+                <div class="row">
+                    <?php if (count($pedidos_pendentes) > 0): ?>
+                        <?php foreach ($pedidos_pendentes as $pedido): ?>
+                            <div class="col-md-4 mb-3">
+                                <div class="card pedido-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Pedido #<?= $pedido['id'] ?></h5>
+                                        <p class="card-text">
+                                            <strong>Cliente:</strong>
+                                            <?= htmlspecialchars($pedido['cliente_nome'] ?? 'N/A') ?><br>
+                                            <strong>Valor:</strong> R$
+                                            <?= number_format($pedido['valor_total'] ?? 0, 2, ',', '.') ?><br>
+                                            <strong>Data:</strong> <?= date('d/m/Y H:i', strtotime($pedido['data_pedido'])) ?>
+                                        </p>
+                                        <div class="btn-group w-100" role="group">
+                                            <button class="btn btn-success btn-sm"
+                                                onclick="confirmarPedido(<?= $pedido['id'] ?>)">
+                                                <i class="fas fa-check"></i> Confirmar
+                                            </button>
+                                            <button class="btn btn-info btn-sm" onclick="verDetalhes(<?= $pedido['id'] ?>)">
+                                                <i class="fas fa-eye"></i> Detalhes
+                                            </button>
                                         </div>
                                     </div>
-
-                                    <!-- Ações -->
-                                    <div class="btn-group w-100" role="group">
-                                        <button class="btn btn-success btn-sm" onclick="marcarPronto(<?= $pedido['id'] ?>)">
-                                            <i class="fas fa-check-circle"></i> Pronto
-                                        </button>
-                                        <button class="btn btn-info btn-sm" onclick="verHistorico(<?= $pedido['id'] ?>)">
-                                            <i class="fas fa-history"></i> Histórico
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-
-                    <?php if (empty($pedidos_preparando)): ?>
-                        <div class="col-12">
-                            <div class="alert alert-info text-center">
-                                <i class="fas fa-info-circle"></i> Nenhum pedido em preparo no momento
-                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-12 text-center text-muted py-5">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p>Nenhum pedido pendente no momento!</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Todos os Pedidos -->
-            <div class="tab-pane fade" id="todos" role="tabpanel">
-                <div class="mt-3">
-                    <!-- Filtros -->
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <input type="date" class="form-control" id="filtroData"
-                                        value="<?= date('Y-m-d') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <select class="form-select" id="filtroStatus">
-                                        <option value="">Todos os Status</option>
-                                        <option value="Pendente">Pendente</option>
-                                        <option value="Confirmado">Confirmado</option>
-                                        <option value="Preparando">Preparando</option>
-                                        <option value="Pronto">Pronto</option>
-                                        <option value="Entregue">Entregue</option>
-                                        <option value="Cancelado">Cancelado</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="text" class="form-control" id="filtroCliente"
-                                        placeholder="Buscar cliente...">
-                                </div>
-                                <div class="col-md-3">
-                                    <button class="btn btn-primary" onclick="filtrarPedidos()">
-                                        <i class="fas fa-search"></i> Filtrar
-                                    </button>
+            <!-- Tab Preparando -->
+            <div class="tab-pane fade" id="preparando" role="tabpanel">
+                <div class="row">
+                    <?php if (count($pedidos_preparando) > 0): ?>
+                        <?php foreach ($pedidos_preparando as $pedido): ?>
+                            <div class="col-md-4 mb-3">
+                                <div class="card pedido-card border-warning">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Pedido #<?= $pedido['id'] ?></h5>
+                                        <p class="card-text">
+                                            <strong>Cliente:</strong>
+                                            <?= htmlspecialchars($pedido['cliente_nome'] ?? 'N/A') ?><br>
+                                            <strong>Valor:</strong> R$
+                                            <?= number_format($pedido['valor_total'] ?? 0, 2, ',', '.') ?><br>
+                                            <strong>Data:</strong> <?= date('d/m/Y H:i', strtotime($pedido['data_pedido'])) ?>
+                                        </p>
+                                        <div class="btn-group w-100" role="group">
+                                            <button class="btn btn-primary btn-sm" onclick="marcarPronto(<?= $pedido['id'] ?>)">
+                                                <i class="fas fa-check-double"></i> Marcar Pronto
+                                            </button>
+                                            <button class="btn btn-info btn-sm" onclick="verDetalhes(<?= $pedido['id'] ?>)">
+                                                <i class="fas fa-eye"></i> Detalhes
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-12 text-center text-muted py-5">
+                            <i class="fas fa-fire fa-3x mb-3"></i>
+                            <p>Nenhum pedido em preparo no momento!</p>
                         </div>
-                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-                    <!-- Tabela de pedidos -->
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="tabelaPedidos">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>#</th>
-                                    <th>Cliente</th>
-                                    <th>Data/Hora</th>
-                                    <th>Status</th>
-                                    <th>Total</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Será preenchido via AJAX -->
-                            </tbody>
-                        </table>
+            <!-- Tab Todos -->
+            <div class="tab-pane fade" id="todos" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filtroData">
                     </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroStatus">
+                            <option value="">Todos os Status</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Confirmado">Confirmado</option>
+                            <option value="Preparando">Preparando</option>
+                            <option value="Pronto">Pronto</option>
+                            <option value="Entregue">Entregue</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="filtroCliente" placeholder="Nome do cliente">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="filtrarPedidos()">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tabelaPedidos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    Clique em "Filtrar" para carregar os pedidos
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modais -->
-
-    <!-- Modal de Detalhes do Pedido -->
+    <!-- Modal Detalhes -->
     <div class="modal fade" id="modalDetalhes" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -392,13 +491,17 @@ $status_fila = $fila->statusFila();
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="conteudoDetalhes">
-                    <!-- Conteúdo carregado dinamicamente -->
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Histórico -->
+    <!-- Modal Histórico -->
     <div class="modal fade" id="modalHistorico" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -407,7 +510,11 @@ $status_fila = $fila->statusFila();
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="conteudoHistorico">
-                    <!-- Conteúdo carregado dinamicamente -->
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -416,7 +523,6 @@ $status_fila = $fila->statusFila();
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="js/notificacoes-realtime.js"></script>
 
     <script>
         // ====================================
@@ -436,7 +542,7 @@ $status_fila = $fila->statusFila();
         }
 
         function atualizarStatus(id, status, observacao = '') {
-            $.post('gestor_pedidos.php', {
+            $.post('<?php echo BASE_URL; ?>/gestor_pedidos', {
                 action: 'atualizar_status',
                 id_pedido: id,
                 novo_status: status,
@@ -452,77 +558,37 @@ $status_fila = $fila->statusFila();
             });
         }
 
-        function alterarPrioridade(id, prioridade) {
-            $.post('gestor_pedidos.php', {
-                action: 'definir_prioridade',
-                id_pedido: id,
-                prioridade: prioridade
-            }).done(function (response) {
-                if (response.sucesso) {
-                    // Feedback visual
-                    const card = $(`.card:has([onclick*="${id}"])`);
-                    card.effect("highlight", { color: "#28a745" }, 1000);
-                } else {
-                    alert('Erro ao alterar prioridade');
-                }
-            });
-        }
-
         function imprimirPedido(id) {
-            $.get('fila_impressao.php', {
-                action: 'adicionar_pedido',
-                id_pedido: id,
-                tipo: 'pedido',
-                prioridade: 'alta'
-            }).done(function (response) {
-                if (response.sucesso) {
-                    alert('Pedido adicionado à fila de impressão');
-                } else {
-                    alert('Erro ao adicionar à fila');
-                }
-            });
+            window.open('<?php echo BASE_URL; ?>/imprimir_pedido?id=' + id, '_blank');
         }
 
         function verDetalhes(id) {
-            $('#conteudoDetalhes').html('<div class="text-center"><div class="spinner-border"></div></div>');
             $('#modalDetalhes').modal('show');
+            $('#conteudoDetalhes').html('<div class="text-center"><div class="spinner-border"></div></div>');
 
-            // Carregar detalhes via AJAX
-            $.get('gestor_pedidos.php', {
-                action: 'buscar_detalhes',
-                id_pedido: id
+            $.get('<?php echo BASE_URL; ?>/api/pedido_detalhes', {
+                id: id
             }).done(function (data) {
-                $('#conteudoDetalhes').html(data);
+                let html = '<div class="p-3">';
+                html += '<h6>Pedido #' + id + '</h6>';
+                html += '<p><strong>Cliente:</strong> ' + (data.cliente_nome || 'N/A') + '</p>';
+                html += '<p><strong>Valor Total:</strong> R$ ' + (parseFloat(data.valor_total || 0).toFixed(2)) + '</p>';
+                html += '<p><strong>Status:</strong> ' + (data.status || 'N/A') + '</p>';
+                html += '</div>';
+                $('#conteudoDetalhes').html(html);
+            }).fail(function () {
+                $('#conteudoDetalhes').html('<div class="alert alert-danger">Erro ao carregar detalhes</div>');
             });
         }
 
         function verHistorico(id) {
-            $('#conteudoHistorico').html('<div class="text-center"><div class="spinner-border"></div></div>');
             $('#modalHistorico').modal('show');
+            $('#conteudoHistorico').html('<div class="text-center"><div class="spinner-border"></div></div>');
 
-            // Carregar histórico via AJAX
-            $.get('gestor_pedidos.php', {
-                action: 'buscar_historico',
-                id_pedido: id
-            }).done(function (data) {
-                let html = '<div class="timeline">';
-                data.forEach(function (item) {
-                    html += `
-                        <div class="timeline-item mb-3">
-                            <div class="d-flex">
-                                <div class="badge bg-primary me-3">${item.data_alteracao}</div>
-                                <div>
-                                    <strong>${item.status_novo}</strong><br>
-                                    <small class="text-muted">Por: ${item.nome_usuario || 'Sistema'}</small>
-                                    ${item.observacao ? `<br><em>${item.observacao}</em>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                $('#conteudoHistorico').html(html);
-            });
+            // Implementar busca de histórico
+            setTimeout(function () {
+                $('#conteudoHistorico').html('<p class="text-muted">Histórico não disponível</p>');
+            }, 1000);
         }
 
         // ====================================
@@ -530,24 +596,17 @@ $status_fila = $fila->statusFila();
         // ====================================
 
         function processarFilaImpressao() {
-            $.get('fila_impressao.php?processar_fila=1').done(function (response) {
-                if (response.status === 'processado') {
-                    alert('Fila de impressão processada!');
-                    // Atualizar contador
-                    atualizarContadorFila();
-                }
+            $.get('<?php echo BASE_URL; ?>/fila_impressao?processar=1').done(function (response) {
+                alert('Fila de impressão processada!');
+                location.reload();
+            }).fail(function () {
+                alert('Erro ao processar fila');
             });
         }
 
         function exportarRelatorioRapido() {
             const hoje = new Date().toISOString().split('T')[0];
-            window.open(`relatorios_gerenciais.php?action=exportar&tipo=faturamento&formato=excel&data_inicio=${hoje}&data_fim=${hoje}`, '_blank');
-        }
-
-        function atualizarContadorFila() {
-            $.get('fila_impressao.php?action=status_fila').done(function (data) {
-                $('#filaImpressao').text(data.total || 0);
-            });
+            window.open('<?php echo BASE_URL; ?>/relatorios/exportar?data=' + hoje, '_blank');
         }
 
         function filtrarPedidos() {
@@ -555,20 +614,24 @@ $status_fila = $fila->statusFila();
             const status = $('#filtroStatus').val();
             const cliente = $('#filtroCliente').val();
 
-            // Implementar filtro via AJAX
-            $.get('gestor_pedidos.php', {
-                action: 'buscar_pedidos',
-                data_inicio: data,
-                data_fim: data,
+            $('#tabelaPedidos tbody').html('<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> Carregando...</td></tr>');
+
+            $.get('<?php echo BASE_URL; ?>/api/pedidos', {
+                data: data,
                 status: status,
                 cliente: cliente
             }).done(function (pedidos) {
+                if (pedidos.length === 0) {
+                    $('#tabelaPedidos tbody').html('<tr><td colspan="6" class="text-center text-muted">Nenhum pedido encontrado</td></tr>');
+                    return;
+                }
+
                 let html = '';
                 pedidos.forEach(function (pedido) {
                     html += `
                         <tr>
                             <td>#${pedido.id}</td>
-                            <td>${pedido.cliente_nome}</td>
+                            <td>${pedido.cliente_nome || 'N/A'}</td>
                             <td>${pedido.data_pedido}</td>
                             <td><span class="badge bg-info">${pedido.status}</span></td>
                             <td>R$ ${parseFloat(pedido.valor_total).toFixed(2)}</td>
@@ -584,6 +647,8 @@ $status_fila = $fila->statusFila();
                     `;
                 });
                 $('#tabelaPedidos tbody').html(html);
+            }).fail(function () {
+                $('#tabelaPedidos tbody').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar pedidos</td></tr>');
             });
         }
 
@@ -592,21 +657,10 @@ $status_fila = $fila->statusFila();
         // ====================================
 
         $(document).ready(function () {
-            // Carregar tabela de todos os pedidos
-            filtrarPedidos();
-
             // Atualizar dados a cada 30 segundos
             setInterval(function () {
-                atualizarContadorFila();
-                if (notificacoes) {
-                    notificacoes.checkNotifications();
-                }
+                location.reload();
             }, 30000);
-
-            // Inicializar notificações
-            if (notificacoes) {
-                notificacoes.start();
-            }
         });
     </script>
 </body>

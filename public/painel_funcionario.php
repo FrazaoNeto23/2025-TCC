@@ -1,6 +1,7 @@
 <?php
+require_once __DIR__ . '/../config/paths.php';
 session_start();
-include "config.php";
+require_once CONFIG_PATH . '/config.php';  // ✅ CORRETO
 
 // Login de funcionário
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_func'])) {
