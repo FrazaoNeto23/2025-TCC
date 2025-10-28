@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] !== 'dono') {
     header("Location: index.php");
@@ -156,8 +155,7 @@ if ($result && $result->num_rows > 0) {
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Funcionários</title>
-    <link rel="stylesheet" href="css/style_funcionario.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo time() ?>">
+    <link rel="stylesheet" href="css/style_funcionario.css?e=<?php echo time() ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -234,41 +232,33 @@ require_once __DIR__ . '/../config/paths.php'; echo time() ?>">
         <div class="spacer"></div>
     </div>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($_GET['success'])): ?>
+    <?php if (isset($_GET['success'])): ?>
         <div
             style="background: #00cc55; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             ✅ Funcionário cadastrado com sucesso!
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($_GET['updated'])): ?>
+    <?php if (isset($_GET['updated'])): ?>
         <div
             style="background: #0ff; color: #121212; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             ✅ Funcionário atualizado com sucesso!
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($_GET['deleted'])): ?>
+    <?php if (isset($_GET['deleted'])): ?>
         <div
             style="background: #ff6b6b; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             ✅ Funcionário excluído!
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($erro)): ?>
+    <?php if (isset($erro)): ?>
         <div
             style="background: #ff4c4c; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             ❌ <?= htmlspecialchars($erro) ?>
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data">
         <h2><i class="fa fa-user-plus"></i> Cadastrar Funcionário</h2>
@@ -283,23 +273,18 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
 
     <h2><i class="fa fa-list"></i> Funcionários Cadastrados</h2>
     <div class="produtos-container">
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if (!empty($funcionarios)): ?>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($funcionarios as $row): ?>
+        <?php if (!empty($funcionarios)): ?>
+            <?php foreach ($funcionarios as $row): ?>
                 <div class="card-produto">
                     <div class="card-info">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
+                        <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
                             <img src="uploads/<?= htmlspecialchars($row['foto']) ?>" class="foto-funcionario">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                        <?php else: ?>
                             <div
                                 style="width: 100px; height: 100px; margin: 15px auto; background: #121212; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 <i class="fa fa-user" style="font-size: 48px; color: #555;"></i>
                             </div>
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                        <?php endif; ?>
                         <h3><i class="fa fa-id-card"></i> <?= htmlspecialchars($row['nome']) ?></h3>
                         <p><i class="fa fa-envelope"></i> <?= htmlspecialchars($row['email']) ?></p>
                     </div>
@@ -309,20 +294,16 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                             onclick="return confirm('Excluir este funcionário?')"><i class="fa fa-trash"></i> Excluir</a>
                     </div>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+            <?php endforeach; ?>
+        <?php else: ?>
             <div style="text-align: center; padding: 60px; background: #1e1e1e; border-radius: 12px; grid-column: 1 / -1;">
                 <i class="fa fa-inbox" style="font-size: 60px; color: #555; margin-bottom: 20px;"></i>
                 <p style="color: #aaa; font-size: 18px;">Nenhum funcionário cadastrado</p>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
     </div>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($funcionarios as $row): ?>
+    <?php foreach ($funcionarios as $row): ?>
         <div class="modal" id="modal-<?= $row['id'] ?>">
             <div class="modal-content">
                 <span class="close" onclick="fecharModal(<?= $row['id'] ?>)">&times;</span>
@@ -338,22 +319,18 @@ require_once __DIR__ . '/../config/paths.php'; foreach ($funcionarios as $row): 
                     <input type="file" name="foto" accept="image/*"
                         onchange="previewImagem(event, 'preview-<?= $row['id'] ?>')">
 
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
+                    <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
                         <img id="preview-<?= $row['id'] ?>" src="uploads/<?= htmlspecialchars($row['foto']) ?>"
                             class="foto-funcionario">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                    <?php else: ?>
                         <img id="preview-<?= $row['id'] ?>" class="foto-funcionario" style="display:none;">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                    <?php endif; ?>
 
                     <button type="submit"><i class="fa fa-save"></i> Salvar Alterações</button>
                 </form>
             </div>
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+    <?php endforeach; ?>
 
     <script>
         function abrirModal(id) {

@@ -1,5 +1,4 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
 include "config.php";
 
@@ -67,8 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <title>Editar Produto Especial</title>
-    <link rel="stylesheet" href="css/editar_produto.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo time() ?>">
+    <link rel="stylesheet" href="css/editar_produto.css?e=<?php echo time() ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -123,15 +121,13 @@ require_once __DIR__ . '/../config/paths.php'; echo time() ?>">
             <label>Imagem</label>
             <input type="file" name="imagem" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
 
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($produto['imagem'] && file_exists("uploads/" . $produto['imagem'])): ?>
+            <?php if ($produto['imagem'] && file_exists("uploads/" . $produto['imagem'])): ?>
                 <div class="preview">
                     <p>Pré-visualização atual:</p>
                     <img src="uploads/<?= htmlspecialchars($produto['imagem']) ?>"
                         alt="<?= htmlspecialchars($produto['nome']) ?>" class="card-img-edit">
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+            <?php endif; ?>
 
             <button type="submit" class="btn-save"><i class="fa fa-save"></i> Salvar Alterações</button>
         </form>

@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");
@@ -89,8 +88,7 @@ $total_itens = 0;
 <head>
     <meta charset="UTF-8">
     <title>Meu Carrinho - Burger House</title>
-    <link rel="stylesheet" href="css/carrinho.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/carrinho.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -103,33 +101,26 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
             <div class="spacer"></div>
         </div>
 
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($itens_carrinho->num_rows > 0): ?>
+        <?php if ($itens_carrinho->num_rows > 0): ?>
             <div class="carrinho-content">
                 <div class="itens-carrinho">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; while ($item = $itens_carrinho->fetch_assoc()):
+                    <?php while ($item = $itens_carrinho->fetch_assoc()):
                         $subtotal = $item['produto_preco'] * $item['quantidade'];
                         $total_carrinho += $subtotal;
                         $total_itens += $item['quantidade'];
                         ?>
                         <div class="item-carrinho <?= $item['tipo_produto'] == 'especial' ? 'item-especial' : '' ?>">
                             <div class="item-imagem">
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; if ($item['produto_imagem'] && file_exists("uploads/" . $item['produto_imagem'])): ?>
+                                <?php if ($item['produto_imagem'] && file_exists("uploads/" . $item['produto_imagem'])): ?>
                                     <img src="uploads/<?= htmlspecialchars($item['produto_imagem']) ?>"
                                         alt="<?= htmlspecialchars($item['produto_nome']) ?>">
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                                <?php else: ?>
                                     <div class="sem-imagem"><i class="fa fa-image"></i></div>
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                                <?php endif; ?>
 
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; if ($item['tipo_produto'] == 'especial'): ?>
+                                <?php if ($item['tipo_produto'] == 'especial'): ?>
                                     <span class="badge-especial"><i class="fa fa-star"></i> Especial</span>
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                                <?php endif; ?>
                             </div>
 
                             <div class="item-info">
@@ -160,8 +151,7 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                                 </a>
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
+                    <?php endwhile; ?>
                 </div>
 
                 <div class="resumo-carrinho">
@@ -203,8 +193,7 @@ require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
                     </a>
                 </div>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+        <?php else: ?>
             <div class="carrinho-vazio">
                 <i class="fa fa-shopping-cart"></i>
                 <h2>Seu carrinho está vazio</h2>
@@ -213,8 +202,7 @@ require_once __DIR__ . '/../config/paths.php'; else: ?>
                     <i class="fa fa-utensils"></i> Ver Cardápio
                 </a>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
     </div>
 
     <script>

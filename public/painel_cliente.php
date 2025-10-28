@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");
@@ -155,8 +154,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>Painel do Cliente - Burger House</title>
-    <link rel="stylesheet" href="css/cliente.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/cliente.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -164,28 +162,23 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
 <body>
     <div class="container">
         <div class="header-cliente">
-            <h1><i class="fa fa-user-circle"></i> Bem-vindo, <?php
-require_once __DIR__ . '/../config/paths.php'; echo htmlspecialchars($_SESSION['usuario']); ?>!</h1>
+            <h1><i class="fa fa-user-circle"></i> Bem-vindo, <?php echo htmlspecialchars($_SESSION['usuario']); ?>!</h1>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <a href="carrinho.php" class="btn-carrinho">
                     <i class="fa fa-shopping-cart"></i> Carrinho
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; if ($count_carrinho > 0): ?>
+                    <?php if ($count_carrinho > 0): ?>
                         <span class="carrinho-badge"><?= $count_carrinho ?></span>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                    <?php endif; ?>
                 </a>
                 <a href="logout.php" class="btn-sair"><i class="fa fa-right-from-bracket"></i> Sair</a>
             </div>
         </div>
 
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($msg): ?>
+        <?php if ($msg): ?>
             <div class="msg-sucesso-pedido <?= str_contains($msg, '❌') ? 'msg-error' : '' ?>" id="notification">
                 <i class="fa <?= str_contains($msg, '❌') ? 'fa-exclamation-triangle' : 'fa-check-circle' ?>"></i>
                 <span>
                     <?php
-require_once __DIR__ . '/../config/paths.php';
                     // Extrair e estilizar o número do pedido
                     if (preg_match('/#([\d-]+)/', $msg, $matches)) {
                         $numero_pedido = $matches[1];
@@ -219,25 +212,19 @@ require_once __DIR__ . '/../config/paths.php';
                     }
                 }
             </script>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
 
         <!-- Produtos Especiais -->
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($produtos_especiais && $produtos_especiais->num_rows > 0): ?>
+        <?php if ($produtos_especiais && $produtos_especiais->num_rows > 0): ?>
             <h2><i class="fa fa-star"></i> Cardápio Especial</h2>
             <div class="produtos produtos-especiais">
-                <?php
-require_once __DIR__ . '/../config/paths.php'; while ($pe = $produtos_especiais->fetch_assoc()): ?>
+                <?php while ($pe = $produtos_especiais->fetch_assoc()): ?>
                     <div class="produto especial">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pe['imagem'] && file_exists("uploads/" . $pe['imagem'])): ?>
+                        <?php if ($pe['imagem'] && file_exists("uploads/" . $pe['imagem'])): ?>
                             <img src="uploads/<?= $pe['imagem'] ?>" alt="<?= $pe['nome'] ?>">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                        <?php else: ?>
                             <div class="sem-imagem"><i class="fa fa-star"></i></div>
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                        <?php endif; ?>
                         <h3><?= htmlspecialchars($pe['nome']) ?></h3>
                         <p class="descricao"><?= htmlspecialchars($pe['descricao'] ?? '') ?></p>
                         <p class="preco">R$ <?= number_format($pe['preco'], 2, ',', '.') ?></p>
@@ -255,28 +242,21 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                             </button>
                         </form>
                     </div>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
+                <?php endwhile; ?>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
 
         <!-- Produtos Normais -->
         <h2><i class="fa fa-utensils"></i> Cardápio</h2>
         <div class="produtos">
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($produtos && $produtos->num_rows > 0): ?>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; while ($p = $produtos->fetch_assoc()): ?>
+            <?php if ($produtos && $produtos->num_rows > 0): ?>
+                <?php while ($p = $produtos->fetch_assoc()): ?>
                     <div class="produto">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['imagem'] && file_exists("uploads/" . $p['imagem'])): ?>
+                        <?php if ($p['imagem'] && file_exists("uploads/" . $p['imagem'])): ?>
                             <img src="uploads/<?= $p['imagem'] ?>" alt="<?= $p['nome'] ?>">
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                        <?php else: ?>
                             <div class="sem-imagem"><i class="fa fa-image"></i></div>
-                        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                        <?php endif; ?>
                         <h3><?= htmlspecialchars($p['nome']) ?></h3>
                         <p class="descricao"><?= htmlspecialchars($p['descricao'] ?? '') ?></p>
                         <p class="preco">R$ <?= number_format($p['preco'], 2, ',', '.') ?></p>
@@ -294,19 +274,15 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                             </button>
                         </form>
                     </div>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                <?php endwhile; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Meus Pedidos -->
         <h2><i class="fa fa-receipt"></i> Meus Pedidos Recentes</h2>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pedidos && $pedidos->num_rows > 0): ?>
+        <?php if ($pedidos && $pedidos->num_rows > 0): ?>
             <div class="pedidos-lista">
-                <?php
-require_once __DIR__ . '/../config/paths.php'; while ($pd = $pedidos->fetch_assoc()): ?>
+                <?php while ($pd = $pedidos->fetch_assoc()): ?>
                     <div class="pedido-card">
                         <div class="pedido-header">
                             <span class="pedido-id">Pedido #<?= $pd['numero_exibicao'] ?></span>
@@ -327,17 +303,14 @@ require_once __DIR__ . '/../config/paths.php'; while ($pd = $pedidos->fetch_asso
                                 class="pagamento-badge <?= strtolower($pd['status_pagamento']) ?>"><?= $pd['status_pagamento'] ?></span>
                         </div>
                     </div>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
+                <?php endwhile; ?>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+        <?php else: ?>
             <div class="sem-pedidos">
                 <i class="fa fa-inbox"></i>
                 <p>Você ainda não fez nenhum pedido</p>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
     </div>
 
     <script>

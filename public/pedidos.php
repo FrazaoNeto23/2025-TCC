@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario'])) {
     header("Location: index.php");
@@ -105,8 +104,7 @@ $stats = $conn->query("
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Pedidos</title>
-    <link rel="stylesheet" href="css/pedidos.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/pedidos.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -186,37 +184,30 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
         </div>
 
         <!-- Info sobre pedidos ocultos -->
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($filtro_status != 'Entregue'): ?>
+        <?php if ($filtro_status != 'Entregue'): ?>
             <div
                 style="background: #1e1e1e; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #00cc55; color: #00cc55; font-size: 14px; display: flex; align-items: center; gap: 10px;">
                 <i class="fa fa-info-circle"></i>
                 <span>Pedidos entregues e pagos estão ocultos automaticamente. Para ver histórico completo, selecione
                     "Entregue (Histórico)" no filtro de status.</span>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
 
         <!-- Grid de Pedidos -->
         <div class="pedidos-grid">
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pedidos->num_rows > 0): ?>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; while ($p = $pedidos->fetch_assoc()):
+            <?php if ($pedidos->num_rows > 0): ?>
+                <?php while ($p = $pedidos->fetch_assoc()):
                     $status_class = strtolower(str_replace(' ', '-', $p['status']));
                     $pag_class = strtolower($p['status_pagamento']);
                     ?>
                     <div class="pedido-card-grid status-<?= $status_class ?>">
                         <div class="pedido-numero">
                             <span class="numero">#<?= $p['id'] ?></span>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['numero_mesa']): ?>
+                            <?php if ($p['numero_mesa']): ?>
                                 <span class="mesa-info"><i class="fa fa-table"></i> Mesa <?= $p['numero_mesa'] ?></span>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                            <?php else: ?>
                                 <span class="mesa-info delivery"><i class="fa fa-motorcycle"></i> Delivery</span>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
                         </div>
 
                         <div class="pedido-cliente">
@@ -228,11 +219,9 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                         </div>
 
                         <div class="pedido-produto">
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['produto_imagem']): ?>
+                            <?php if ($p['produto_imagem']): ?>
                                 <img src="uploads/<?= $p['produto_imagem'] ?>" alt="<?= $p['produto_nome'] ?>">
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
                             <div class="produto-info">
                                 <h3><?= $p['produto_nome'] ?></h3>
                                 <p><i class="fa fa-box"></i> Qtd: <?= $p['quantidade'] ?></p>
@@ -249,50 +238,39 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                             <span class="badge-pagamento pag-<?= $pag_class ?>">
                                 <?= $p['status_pagamento'] ?>
                             </span>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['metodo_pagamento']): ?>
+                            <?php if ($p['metodo_pagamento']): ?>
                                 <small class="metodo"><i class="fa fa-info-circle"></i>
                                     <?= ucfirst($p['metodo_pagamento']) ?></small>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
                         </div>
 
                         <div class="pedido-acoes-grid">
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['status'] == 'Pendente'): ?>
+                            <?php if ($p['status'] == 'Pendente'): ?>
                                 <a href="?update_status=Em preparo&id=<?= $p['id'] ?>" class="btn-acao btn-preparo">
                                     <i class="fa fa-fire"></i> Iniciar Preparo
                                 </a>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
 
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['status'] == 'Em preparo'): ?>
+                            <?php if ($p['status'] == 'Em preparo'): ?>
                                 <a href="?update_status=Entregando&id=<?= $p['id'] ?>" class="btn-acao btn-entregar">
                                     <i class="fa fa-truck"></i> Sair p/ Entrega
                                 </a>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
 
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['status'] == 'Entregando'): ?>
+                            <?php if ($p['status'] == 'Entregando'): ?>
                                 <a href="?entregue=<?= $p['id'] ?>" class="btn-acao btn-finalizar">
                                     <i class="fa fa-check-circle"></i> Marcar Entregue
                                 </a>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
-                <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                <?php endwhile; ?>
+            <?php else: ?>
                 <div class="sem-pedidos">
                     <i class="fa fa-inbox"></i>
                     <p>Nenhum pedido encontrado</p>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+            <?php endif; ?>
         </div>
     </div>
 

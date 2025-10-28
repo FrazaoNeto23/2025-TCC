@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
     header("Location: index.php");
@@ -95,8 +94,7 @@ $produtos = $conn->query("SELECT * FROM produtos ORDER BY nome ASC");
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Cardápio</title>
-    <link rel="stylesheet" href="css/cardapio.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/cardapio.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -108,32 +106,26 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
         <div class="spacer"></div>
     </div>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($_GET['success'])): ?>
+    <?php if (isset($_GET['success'])): ?>
         <div
             style="background: #00cc55; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             <i class="fa fa-check-circle"></i> Produto adicionado com sucesso!
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($_GET['deleted'])): ?>
+    <?php if (isset($_GET['deleted'])): ?>
         <div
             style="background: #ff6b6b; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             <i class="fa fa-trash"></i> Produto excluído!
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
-    <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($erro)): ?>
+    <?php if (isset($erro)): ?>
         <div
             style="background: #ff4c4c; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
             <i class="fa fa-exclamation-triangle"></i> <?= htmlspecialchars($erro) ?>
         </div>
-    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+    <?php endif; ?>
 
     <form method="post" enctype="multipart/form-data">
         <input type="text" name="nome" placeholder="Nome do produto" required maxlength="100">
@@ -144,20 +136,15 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
     </form>
 
     <div class="produtos-container">
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($produtos && $produtos->num_rows > 0): ?>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; while ($row = $produtos->fetch_assoc()): ?>
+        <?php if ($produtos && $produtos->num_rows > 0): ?>
+            <?php while ($row = $produtos->fetch_assoc()): ?>
                 <div class="card-produto">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; if ($row['imagem'] && file_exists($targetDir . $row['imagem'])): ?>
+                    <?php if ($row['imagem'] && file_exists($targetDir . $row['imagem'])): ?>
                         <img src="<?= htmlspecialchars($targetDir . $row['imagem']) ?>" alt="<?= htmlspecialchars($row['nome']) ?>"
                             class="card-img">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                    <?php else: ?>
                         <div class="card-img-placeholder">Sem Imagem</div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                    <?php endif; ?>
                     <div class="card-info">
                         <h3><?= htmlspecialchars($row['nome']) ?></h3>
                         <p class="preco">R$ <?= number_format($row['preco'], 2, ',', '.') ?></p>
@@ -173,16 +160,13 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                         </a>
                     </div>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+            <?php endwhile; ?>
+        <?php else: ?>
             <div style="text-align: center; padding: 60px; background: #1e1e1e; border-radius: 12px; grid-column: 1 / -1;">
                 <i class="fa fa-inbox" style="font-size: 60px; color: #555; margin-bottom: 20px;"></i>
                 <p style="color: #aaa; font-size: 18px;">Nenhum produto cadastrado</p>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
     </div>
 </body>
 

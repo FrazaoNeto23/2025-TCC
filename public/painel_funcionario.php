@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 // Login de funcionário
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_func'])) {
@@ -33,16 +32,14 @@ if (!isset($_SESSION['funcionario'])) {
     <head>
         <meta charset="UTF-8">
         <title>Login Funcionário</title>
-        <link rel="stylesheet" href="css/acesso.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+        <link rel="stylesheet" href="css/acesso.css?e=<?php echo rand(0, 10000) ?>">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
 
     <body>
         <div class="container">
             <h1>Acesso de Funcionário</h1>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($erro))
+            <?php if (isset($erro))
                 echo "<p class='msg'>$erro</p>"; ?>
             <div class="forms">
                 <form method="POST" class="active">
@@ -59,7 +56,6 @@ require_once __DIR__ . '/../config/paths.php'; if (isset($erro))
 
     </html>
     <?php
-require_once __DIR__ . '/../config/paths.php';
     exit;
 }
 
@@ -93,8 +89,7 @@ $produtos_especiais = $conn->query("SELECT * FROM produtos_especiais");
 <head>
     <meta charset="UTF-8">
     <title>Painel do Funcionário</title>
-    <link rel="stylesheet" href="css/funcionario_painel.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/funcionario_painel.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -122,11 +117,9 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
         <div id="secao-pedidos" class="secao active">
             <h2><i class="fa fa-table"></i> Pedidos por Mesa</h2>
 
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pedidos->num_rows > 0): ?>
+            <?php if ($pedidos->num_rows > 0): ?>
                 <div class="mesas-container">
                     <?php
-require_once __DIR__ . '/../config/paths.php';
                     $pedidos_por_mesa = [];
                     $pedidos->data_seek(0);
                     while ($p = $pedidos->fetch_assoc()) {
@@ -146,8 +139,7 @@ require_once __DIR__ . '/../config/paths.php';
                             </div>
 
                             <div class="pedidos-mesa">
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_mesa as $p):
+                                <?php foreach ($pedidos_mesa as $p):
                                     $status_class = strtolower(str_replace(' ', '-', $p['status']));
                                     ?>
                                     <div class="pedido-item status-<?= $status_class ?>">
@@ -156,12 +148,10 @@ require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_mesa as $p):
                                             <span class="pedido-cliente"><?= $p['cliente_nome'] ?></span>
                                         </div>
 
-                                        <?php
-require_once __DIR__ . '/../config/paths.php'; if ($p['produto_imagem']): ?>
+                                        <?php if ($p['produto_imagem']): ?>
                                             <img src="uploads/<?= $p['produto_imagem'] ?>" alt="<?= $p['produto_nome'] ?>"
                                                 class="pedido-img-mini">
-                                        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                                        <?php endif; ?>
 
                                         <div class="pedido-detalhes-mini">
                                             <strong><?= $p['produto_nome'] ?></strong>
@@ -169,41 +159,32 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                                             <span class="badge-status-mini"><?= $p['status'] ?></span>
                                         </div>
                                     </div>
-                                <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+                                <?php endforeach; ?>
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+                    <?php endforeach; ?>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+            <?php else: ?>
                 <div class="sem-pedidos">
                     <i class="fa fa-inbox"></i>
                     <p>Nenhum pedido ativo no momento</p>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Seção do Cardápio Especial -->
         <div id="secao-cardapio" class="secao">
             <h2><i class="fa fa-star"></i> Cardápio Especial</h2>
 
-            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($produtos_especiais->num_rows > 0): ?>
+            <?php if ($produtos_especiais->num_rows > 0): ?>
                 <div class="produtos-especiais">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; while ($pe = $produtos_especiais->fetch_assoc()): ?>
+                    <?php while ($pe = $produtos_especiais->fetch_assoc()): ?>
                         <div class="produto-especial-card">
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pe['imagem']): ?>
+                            <?php if ($pe['imagem']): ?>
                                 <img src="uploads/<?= $pe['imagem'] ?>" alt="<?= $pe['nome'] ?>">
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+                            <?php else: ?>
                                 <div class="sem-imagem-especial"><i class="fa fa-image"></i></div>
-                            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                            <?php endif; ?>
 
                             <div class="produto-info-especial">
                                 <h3><i class="fa fa-star"></i> <?= $pe['nome'] ?></h3>
@@ -211,17 +192,14 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                                 <p class="preco-especial">R$ <?= number_format($pe['preco'], 2, ',', '.') ?></p>
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endwhile; ?>
+                    <?php endwhile; ?>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; else: ?>
+            <?php else: ?>
                 <div class="sem-produtos">
                     <i class="fa fa-utensils"></i>
                     <p>Nenhum produto especial cadastrado ainda</p>
                 </div>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+            <?php endif; ?>
         </div>
     </div>
 

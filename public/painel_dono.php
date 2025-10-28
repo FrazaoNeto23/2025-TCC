@@ -1,15 +1,14 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 // ========================================
 // EXEMPLO DE INTEGRAÇÃO COMPLETA - FASE 2
 // Painel do Dono com todas as funcionalidades
 // ========================================
 
 session_start();
-require_once CONFIG_PATH . "/config.php";
-// Autoload carrega automaticamente;
-// Autoload carrega automaticamente;
-// Autoload carrega automaticamente;
+require_once 'config.php';
+require_once 'notificacoes.php';
+require_once 'gestor_pedidos.php';
+require_once 'fila_impressao.php';
 
 // Verificar se é dono
 if (!isset($_SESSION['usuario_id']) || $_SESSION['usuario_tipo'] != 'dono') {
@@ -215,8 +214,7 @@ $status_fila = $fila->statusFila();
             <!-- Pedidos Pendentes -->
             <div class="tab-pane fade show active" id="pendentes" role="tabpanel">
                 <div class="row mt-3">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_pendentes as $pedido): ?>
+                    <?php foreach ($pedidos_pendentes as $pedido): ?>
                         <div class="col-md-6 col-lg-4">
                             <div class="card pedido-card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -229,12 +227,10 @@ require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_pendentes as $p
                                     </p>
                                     <p><strong>Horário:</strong> <?= date('H:i', strtotime($pedido['data_pedido'])) ?></p>
 
-                                    <?php
-require_once __DIR__ . '/../config/paths.php'; if ($pedido['observacoes_cliente']): ?>
+                                    <?php if ($pedido['observacoes_cliente']): ?>
                                         <p><strong>Obs:</strong>
                                             <em><?= htmlspecialchars($pedido['observacoes_cliente']) ?></em></p>
-                                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                                    <?php endif; ?>
 
                                     <!-- Ações -->
                                     <div class="btn-group w-100" role="group">
@@ -264,26 +260,22 @@ require_once __DIR__ . '/../config/paths.php'; endif; ?>
                                 </div>
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+                    <?php endforeach; ?>
 
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; if (empty($pedidos_pendentes)): ?>
+                    <?php if (empty($pedidos_pendentes)): ?>
                         <div class="col-12">
                             <div class="alert alert-info text-center">
                                 <i class="fas fa-info-circle"></i> Nenhum pedido pendente no momento
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <!-- Pedidos Preparando -->
             <div class="tab-pane fade" id="preparando" role="tabpanel">
                 <div class="row mt-3">
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_preparando as $pedido): ?>
+                    <?php foreach ($pedidos_preparando as $pedido): ?>
                         <div class="col-md-6 col-lg-4">
                             <div class="card pedido-card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -296,7 +288,6 @@ require_once __DIR__ . '/../config/paths.php'; foreach ($pedidos_preparando as $
 
                                     <!-- Barra de progresso baseada no tempo -->
                                     <?php
-require_once __DIR__ . '/../config/paths.php';
                                     $inicio = strtotime($pedido['data_pedido']);
                                     $agora = time();
                                     $tempo_decorrido = ($agora - $inicio) / 60; // em minutos
@@ -320,18 +311,15 @@ require_once __DIR__ . '/../config/paths.php';
                                 </div>
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+                    <?php endforeach; ?>
 
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; if (empty($pedidos_preparando)): ?>
+                    <?php if (empty($pedidos_preparando)): ?>
                         <div class="col-12">
                             <div class="alert alert-info text-center">
                                 <i class="fas fa-info-circle"></i> Nenhum pedido em preparo no momento
                             </div>
                         </div>
-                    <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 

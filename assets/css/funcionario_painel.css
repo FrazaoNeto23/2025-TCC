@@ -1,0 +1,378 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    color: #fff;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header-func {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    border: 2px solid #0ff;
+}
+
+.header-func h1 {
+    color: #0ff;
+    font-size: 26px;
+    text-shadow: 0 0 15px #0ff;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-info span {
+    color: #00d4d4;
+    font-size: 16px;
+}
+
+.btn-sair {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #ff4c4c;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-sair:hover {
+    background: #e53939;
+    box-shadow: 0 0 15px #ff4c4c;
+}
+
+.dashboard-menu {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.menu-btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 15px 25px;
+    background: #1e1e1e;
+    border: 2px solid #555;
+    border-radius: 10px;
+    color: #aaa;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.menu-btn:hover {
+    border-color: #0ff;
+    color: #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.menu-btn.active {
+    background: linear-gradient(135deg, #0ff, #00d4d4);
+    color: #121212;
+    border-color: #0ff;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+}
+
+.secao {
+    display: none;
+}
+
+.secao.active {
+    display: block;
+    animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.secao h2 {
+    color: #0ff;
+    margin-bottom: 25px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+/* Mesas */
+.mesas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.mesa-card {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    transition: 0.3s;
+}
+
+.mesa-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+}
+
+.mesa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #121212;
+}
+
+.mesa-header h3 {
+    color: #0ff;
+    font-size: 20px;
+}
+
+.mesa-badge {
+    background: #0ff;
+    color: #121212;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.pedidos-mesa {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.pedido-item {
+    background: #121212;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid #0ff;
+    transition: 0.3s;
+}
+
+.pedido-item:hover {
+    background: #1a1a1a;
+    transform: translateX(5px);
+}
+
+.pedido-item.status-pendente {
+    border-left-color: #ffa500;
+}
+
+.pedido-item.status-em-preparo {
+    border-left-color: #ff6b6b;
+}
+
+.pedido-item.status-entregando {
+    border-left-color: #00cc55;
+}
+
+.pedido-info-mini {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.pedido-num {
+    color: #0ff;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.pedido-cliente {
+    color: #aaa;
+    font-size: 14px;
+}
+
+.pedido-img-mini {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.pedido-detalhes-mini strong {
+    color: #0ff;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.pedido-detalhes-mini p {
+    color: #ccc;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.badge-status-mini {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    background: #555;
+    color: #fff;
+}
+
+/* Produtos Especiais */
+.produtos-especiais {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.produto-especial-card {
+    background: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #ffa500;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
+    transition: 0.3s;
+}
+
+.produto-especial-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 30px rgba(255, 165, 0, 0.5);
+}
+
+.produto-especial-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.sem-imagem-especial {
+    width: 100%;
+    height: 200px;
+    background: #121212;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 48px;
+}
+
+.produto-info-especial {
+    padding: 20px;
+}
+
+.produto-info-especial h3 {
+    color: #ffa500;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.produto-info-especial .descricao {
+    color: #ccc;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.preco-especial {
+    color: #ffa500;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.sem-pedidos,
+.sem-produtos {
+    text-align: center;
+    padding: 60px 20px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    border: 2px solid #555;
+}
+
+.sem-pedidos i,
+.sem-produtos i {
+    font-size: 60px;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.sem-pedidos p,
+.sem-produtos p {
+    color: #aaa;
+    font-size: 16px;
+}
+
+@media (max-width: 900px) {
+    .header-func {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .mesas-container,
+    .produtos-especiais {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-menu {
+        flex-direction: column;
+    }
+
+    .menu-btn {
+        min-width: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .header-func h1 {
+        font-size: 20px;
+    }
+
+    .secao h2 {
+        font-size: 20px;
+    }
+}

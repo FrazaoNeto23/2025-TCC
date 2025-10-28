@@ -1,7 +1,6 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 session_start();
 session_destroy();
-header("Location: index.php");
+header("Location: index.php"); // ✅ não precisa de barra /
 exit;
 ?>

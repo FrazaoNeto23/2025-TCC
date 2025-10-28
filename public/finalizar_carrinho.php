@@ -1,8 +1,7 @@
-﻿<?php
-require_once __DIR__ . '/../config/paths.php';
+<?php
 ob_start();
 session_start();
-require_once CONFIG_PATH . "/config.php";
+include "config.php";
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");
@@ -171,8 +170,7 @@ ob_end_flush(); // Libera o buffer para mostrar a página
 <head>
     <meta charset="UTF-8">
     <title>Finalizar Pedido - Burger House</title>
-    <link rel="stylesheet" href="css/pagamento.css?e=<?php
-require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
+    <link rel="stylesheet" href="css/pagamento.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script>
@@ -239,18 +237,15 @@ require_once __DIR__ . '/../config/paths.php'; echo rand(0, 10000) ?>">
 
         <h1><i class="fa fa-credit-card"></i> Finalizar Pedido</h1>
 
-        <?php
-require_once __DIR__ . '/../config/paths.php'; if (isset($erro)): ?>
+        <?php if (isset($erro)): ?>
             <div style="background:#ff4c4c;color:#fff;padding:15px;border-radius:8px;margin-bottom:20px;">
                 <i class="fa fa-exclamation-triangle"></i> <?= $erro ?>
             </div>
-        <?php
-require_once __DIR__ . '/../config/paths.php'; endif; ?>
+        <?php endif; ?>
 
         <div class="pedido-resumo">
             <h2><i class="fa fa-receipt"></i> Resumo do Pedido</h2>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; foreach ($itens_array as $item): ?>
+            <?php foreach ($itens_array as $item): ?>
                 <p>
                     <strong><?= htmlspecialchars($item['produto_nome']) ?></strong><br>
                     <span style="color:#aaa;font-size:14px;">
@@ -259,8 +254,7 @@ require_once __DIR__ . '/../config/paths.php'; foreach ($itens_array as $item): 
                             <?= number_format($item['produto_preco'] * $item['quantidade'], 2, ',', '.') ?></strong>
                     </span>
                 </p>
-            <?php
-require_once __DIR__ . '/../config/paths.php'; endforeach; ?>
+            <?php endforeach; ?>
             <p class="total">Total: R$ <?= number_format($total_carrinho, 2, ',', '.') ?></p>
         </div>
 
