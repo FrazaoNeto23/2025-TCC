@@ -1,18 +1,12 @@
 <?php
-/**
- * BURGER HOUSE - Arquivo Principal de Entrada
- * Este arquivo deve estar na RAIZ do projeto
- */
-
 require_once __DIR__ . '/config/paths.php';
 session_start();
 require_once CONFIG_PATH . '/config.php';
 
-// Se já está logado, redirecionar para o painel apropriado
 if (isset($_SESSION['usuario']) && isset($_SESSION['tipo'])) {
     switch ($_SESSION['tipo']) {
         case 'dono':
-            header("Location: public/painel_dono.php");
+            header("Location: public/pedidos.php");
             exit;
         case 'cliente':
             header("Location: public/painel_cliente.php");

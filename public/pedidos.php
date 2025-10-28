@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/paths.php';
 session_start();
-require_once CONFIG_PATH . '/config.php';  // ✅ CORRETO
+require_once CONFIG_PATH . '/config.php';
 
 if (!isset($_SESSION['usuario'])) {
     header("Location: index.php");
@@ -29,8 +29,6 @@ if (isset($_GET['entregue'])) {
     exit;
 }
 
-// REMOVIDO: Código do botão "limpar_antigos"
-
 // Filtros
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : 'todos';
 $filtro_pagamento = isset($_GET['pagamento']) ? $_GET['pagamento'] : 'todos';
@@ -43,21 +41,17 @@ if ($filtro_pagamento != 'todos') {
     $where_clauses[] = "pedidos.status_pagamento = '" . $conn->real_escape_string($filtro_pagamento) . "'";
 }
 
-$where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";
-
-// Adicionar filtro automático para esconder pedidos entregues E pagos
+// Esconder pedidos finalizados (entregues E pagos) exceto se filtrado explicitamente
 if (empty($where_clauses)) {
-    // Se não há filtros aplicados, mostrar apenas pedidos ativos
     $where_sql = "WHERE NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
 } else {
-    // Se há filtros, adicionar condição para esconder pedidos finalizados (exceto se filtrar por "Entregue")
     if ($filtro_status != 'Entregue') {
         $where_clauses[] = "NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
-        $where_sql = "WHERE " . implode(" AND ", $where_clauses);
     }
+    $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 }
 
-// Busca pedidos com informações do cliente e produto
+// Busca pedidos
 $pedidos = $conn->query("
     SELECT pedidos.*, 
            usuarios.nome AS cliente_nome,
@@ -104,7 +98,7 @@ $stats = $conn->query("
 
 <head>
     <meta charset="UTF-8">
-    <title>Gerenciar Pedidos</title>
+    <title>Gerenciar Pedidos - Burger House</title>
     <link rel="stylesheet" href="css/pedidos.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -112,7 +106,7 @@ $stats = $conn->query("
 
 <body>
     <div class="container">
-        <!-- Header com botão voltar -->
+        <!-- Header -->
         <div class="header-pedidos">
             <a href="painel_dono.php" class="btn-voltar">
                 <i class="fa fa-arrow-left"></i> Voltar ao Painel
@@ -160,7 +154,7 @@ $stats = $conn->query("
             </div>
         </div>
 
-        <!-- Filtros (SEM BOTÃO LIMPAR) -->
+        <!-- Filtros -->
         <div class="filtros-container">
             <div class="filtros">
                 <label><i class="fa fa-filter"></i> Filtrar por Status:</label>
@@ -181,7 +175,6 @@ $stats = $conn->query("
                     <option value="Pago" <?= $filtro_pagamento == 'Pago' ? 'selected' : '' ?>>Pago</option>
                 </select>
             </div>
-            <!-- BOTÃO "LIMPAR ANTIGOS" FOI REMOVIDO -->
         </div>
 
         <!-- Info sobre pedidos ocultos -->
@@ -202,36 +195,46 @@ $stats = $conn->query("
                     $pag_class = strtolower($p['status_pagamento']);
                     ?>
                     <div class="pedido-card-grid status-<?= $status_class ?>">
+                        <!-- Número do Pedido e Mesa -->
                         <div class="pedido-numero">
                             <span class="numero">#<?= $p['id'] ?></span>
                             <?php if ($p['numero_mesa']): ?>
-                                <span class="mesa-info"><i class="fa fa-table"></i> Mesa <?= $p['numero_mesa'] ?></span>
+                                <span class="mesa-info">
+                                    <i class="fa fa-table"></i> Mesa <?= $p['numero_mesa'] ?>
+                                </span>
                             <?php else: ?>
-                                <span class="mesa-info delivery"><i class="fa fa-motorcycle"></i> Delivery</span>
+                                <span class="mesa-info delivery">
+                                    <i class="fa fa-motorcycle"></i> Delivery
+                                </span>
                             <?php endif; ?>
                         </div>
 
+                        <!-- Cliente -->
                         <div class="pedido-cliente">
                             <i class="fa fa-user-circle"></i>
                             <div>
-                                <strong><?= $p['cliente_nome'] ?></strong>
-                                <small><?= $p['cliente_email'] ?></small>
+                                <strong><?= htmlspecialchars($p['cliente_nome']) ?></strong>
+                                <small><?= htmlspecialchars($p['cliente_email']) ?></small>
                             </div>
                         </div>
 
+                        <!-- Produto -->
                         <div class="pedido-produto">
-                            <?php if ($p['produto_imagem']): ?>
-                                <img src="uploads/<?= $p['produto_imagem'] ?>" alt="<?= $p['produto_nome'] ?>">
+                            <?php if ($p['produto_imagem'] && file_exists("uploads/" . $p['produto_imagem'])): ?>
+                                <img src="uploads/<?= htmlspecialchars($p['produto_imagem']) ?>"
+                                    alt="<?= htmlspecialchars($p['produto_nome']) ?>">
                             <?php endif; ?>
+
                             <div class="produto-info">
-                                <h3><?= $p['produto_nome'] ?></h3>
+                                <h3><?= htmlspecialchars($p['produto_nome']) ?></h3>
                                 <p><i class="fa fa-box"></i> Qtd: <?= $p['quantidade'] ?></p>
+                                <p><i class="fa fa-calendar"></i> <?= date('d/m/Y H:i', strtotime($p['data'])) ?></p>
                                 <p class="total"><i class="fa fa-dollar-sign"></i> R$
-                                    <?= number_format($p['total'], 2, ',', '.') ?>
-                                </p>
+                                    <?= number_format($p['total'], 2, ',', '.') ?></p>
                             </div>
                         </div>
 
+                        <!-- Status e Pagamento -->
                         <div class="pedido-status-info">
                             <span class="badge-status status-<?= $status_class ?>">
                                 <?= $p['status'] ?>
@@ -240,11 +243,13 @@ $stats = $conn->query("
                                 <?= $p['status_pagamento'] ?>
                             </span>
                             <?php if ($p['metodo_pagamento']): ?>
-                                <small class="metodo"><i class="fa fa-info-circle"></i>
-                                    <?= ucfirst($p['metodo_pagamento']) ?></small>
+                                <small class="metodo">
+                                    <i class="fa fa-info-circle"></i> <?= ucfirst($p['metodo_pagamento']) ?>
+                                </small>
                             <?php endif; ?>
                         </div>
 
+                        <!-- Ações -->
                         <div class="pedido-acoes-grid">
                             <?php if ($p['status'] == 'Pendente'): ?>
                                 <a href="?update_status=Em preparo&id=<?= $p['id'] ?>" class="btn-acao btn-preparo">
