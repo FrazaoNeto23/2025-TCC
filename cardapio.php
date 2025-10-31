@@ -1,7 +1,10 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php";
+include "verificar_sessao.php";
 
+verificarDono();
+
+// ... resto do código
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "dono") {
     header("Location: index.php");
     exit;

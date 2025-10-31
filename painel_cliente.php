@@ -1,6 +1,10 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php"; // Já inicia a sessão
+include "verificar_sessao.php";
+
+verificarCliente();
+
+$id_cliente = $_SESSION['id_usuario'];
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");
@@ -10,32 +14,37 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 $msg = "";
 $id_cliente = $_SESSION['id_usuario'];
 
-// ===== RECONECTAR SE NECESSÁRIO =====
-if (!$conn->ping()) {
-    $conn = new mysqli("localhost", "root", "", "burger_house", 3307);
-    $conn->set_charset("utf8mb4");
-}
-
-// ===== ADICIONAR AO CARRINHO =====
+// ===== ADICIONAR AO CARRINHO - JÁ ESTÁ BOM =====
 if (isset($_POST['adicionar_carrinho'])) {
     $id_produto = intval($_POST['id_produto']);
     $quantidade = intval($_POST['quantidade']);
     $tipo_produto = $_POST['tipo_produto'];
 
     try {
+        // Validar tipo de produto
+        if (!in_array($tipo_produto, ['normal', 'especial'])) {
+            throw new Exception("Tipo de produto inválido");
+        }
+        
+        // Validar quantidade
+        if ($quantidade < 1 || $quantidade > 99) {
+            throw new Exception("Quantidade inválida");
+        }
+        
         // Validar produto
         $produto_valido = false;
-
         if ($tipo_produto == 'normal') {
             $check = $conn->prepare("SELECT id FROM produtos WHERE id = ?");
             $check->bind_param("i", $id_produto);
             $check->execute();
             $produto_valido = $check->get_result()->num_rows > 0;
+            $check->close();
         } elseif ($tipo_produto == 'especial') {
             $check = $conn->prepare("SELECT id FROM produtos_especiais WHERE id = ?");
             $check->bind_param("i", $id_produto);
             $check->execute();
             $produto_valido = $check->get_result()->num_rows > 0;
+            $check->close();
         }
 
         if (!$produto_valido) {
@@ -54,10 +63,16 @@ if (isset($_POST['adicionar_carrinho'])) {
                 // Atualizar quantidade
                 $item = $resultado->fetch_assoc();
                 $nova_qtd = $item['quantidade'] + $quantidade;
+                
+                // Validar nova quantidade
+                if ($nova_qtd > 99) {
+                    $nova_qtd = 99;
+                }
 
                 $update = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=?");
                 $update->bind_param("ii", $nova_qtd, $item['id']);
                 $update->execute();
+                $update->close();
 
                 $msg = "✅ Quantidade atualizada no carrinho!";
             } else {
@@ -68,38 +83,14 @@ if (isset($_POST['adicionar_carrinho'])) {
                 ");
                 $insert->bind_param("iiis", $id_cliente, $id_produto, $quantidade, $tipo_produto);
                 $insert->execute();
+                $insert->close();
 
                 $msg = "✅ Produto adicionado ao carrinho!";
             }
+            $stmt->close();
         }
     } catch (Exception $e) {
         $msg = "❌ Erro: " . $e->getMessage();
-    }
-}
-
-// ===== RESET AUTOMÁTICO =====
-if (!isset($_SESSION['reset_verificado_hoje'])) {
-    try {
-        $hoje = date('Y-m-d');
-
-        $table_check = $conn->query("SHOW TABLES LIKE 'system_logs'");
-        if ($table_check && $table_check->num_rows == 0) {
-            $conn->query("
-                CREATE TABLE system_logs (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    tipo VARCHAR(50),
-                    nivel VARCHAR(20) DEFAULT 'INFO',
-                    status VARCHAR(20),
-                    mensagem TEXT,
-                    dados JSON,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ");
-        }
-
-        $_SESSION['reset_verificado_hoje'] = true;
-    } catch (Exception $e) {
-        // Ignorar erros de reset
     }
 }
 
@@ -109,18 +100,13 @@ if (isset($_SESSION['pagamento_sucesso'])) {
     unset($_SESSION['pagamento_sucesso']);
 }
 
-// ===== BUSCAR PRODUTOS COM RECONEXÃO =====
+// ===== BUSCAR PRODUTOS =====
 try {
-    if (!$conn->ping()) {
-        $conn = new mysqli("localhost:3307", "root", "", "burger_house");
-        $conn->set_charset("utf8mb4");
-    }
-
     $produtos = $conn->query("SELECT * FROM produtos ORDER BY nome");
     $produtos_especiais = $conn->query("SELECT * FROM produtos_especiais ORDER BY nome");
 
-    // Buscar pedidos
-    $pedidos = $conn->query("
+    // Buscar pedidos - CORRIGIDO
+    $stmt_pedidos = $conn->prepare("
         SELECT pedidos.*, 
                CASE 
                    WHEN pedidos.tipo_produto = 'normal' THEN produtos.nome
@@ -134,20 +120,26 @@ try {
         FROM pedidos 
         LEFT JOIN produtos ON pedidos.id_produto = produtos.id AND pedidos.tipo_produto = 'normal'
         LEFT JOIN produtos_especiais ON pedidos.id_produto = produtos_especiais.id AND pedidos.tipo_produto = 'especial'
-        WHERE pedidos.id_cliente = $id_cliente
+        WHERE pedidos.id_cliente = ?
         ORDER BY pedidos.data DESC
         LIMIT 10
     ");
+    $stmt_pedidos->bind_param("i", $id_cliente);
+    $stmt_pedidos->execute();
+    $pedidos = $stmt_pedidos->get_result();
 
     // Contar carrinho
-    $count_result = $conn->query("SELECT COUNT(*) as total FROM carrinho WHERE id_cliente=$id_cliente");
-    $count_carrinho = $count_result ? $count_result->fetch_assoc()['total'] : 0;
+    $stmt_count = $conn->prepare("SELECT COUNT(*) as total FROM carrinho WHERE id_cliente=?");
+    $stmt_count->bind_param("i", $id_cliente);
+    $stmt_count->execute();
+    $count_carrinho = $stmt_count->get_result()->fetch_assoc()['total'];
+    $stmt_count->close();
 
 } catch (Exception $e) {
     die("Erro ao carregar dados: " . $e->getMessage());
 }
 ?>
-
+<!-- Resto do HTML permanece igual -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 

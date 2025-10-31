@@ -1,12 +1,9 @@
 <?php
 ob_start();
-session_start();
-include "config.php";
+include "config_seguro.php";
+include "verificar_sessao.php";
 
-if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
-    header("Location: index.php");
-    exit;
-}
+verificarCliente();
 
 $id_cliente = $_SESSION['id_usuario'];
 
@@ -22,11 +19,12 @@ if ($check_obs->num_rows == 0) {
     $conn->query("ALTER TABLE pedidos ADD COLUMN observacoes TEXT AFTER metodo_pagamento");
 }
 
-// ===== GERAR NÚMERO SEQUENCIAL =====
+// ===== GERAR NÚMERO SEQUENCIAL COM LOCK =====
 function gerarNumeroSequencial($conn)
 {
-    $prefixo = date('Ymd');
+    $conn->query("LOCK TABLES pedidos WRITE");
 
+    $prefixo = date('Ymd');
     $stmt = $conn->prepare("
         SELECT MAX(CAST(SUBSTRING_INDEX(numero_pedido, '-', -1) AS UNSIGNED)) as ultimo_numero
         FROM pedidos 
@@ -39,94 +37,146 @@ function gerarNumeroSequencial($conn)
     $resultado = $stmt->get_result()->fetch_assoc();
 
     $proximo_numero = ($resultado['ultimo_numero'] ?? 0) + 1;
+    $numero_pedido = $prefixo . '-' . str_pad($proximo_numero, 3, '0', STR_PAD_LEFT);
 
-    return $prefixo . '-' . str_pad($proximo_numero, 3, '0', STR_PAD_LEFT);
+    $conn->query("UNLOCK TABLES");
+
+    return $numero_pedido;
 }
 
-// ===== PROCESSAR PAGAMENTO =====
+// ===== PROCESSAR PAGAMENTO - CORRIGIDO =====
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) {
     $metodo = $_POST['metodo_pagamento'] ?? '';
     $numero_mesa = isset($_POST['numero_mesa']) && $_POST['numero_mesa'] ? intval($_POST['numero_mesa']) : null;
 
     if (empty($metodo)) {
-        $erro = "Por favor, selecione um método de pagamento!";
-    } else {
-        $itens = $conn->query("
-            SELECT carrinho.*, 
-                   CASE 
-                       WHEN carrinho.tipo_produto = 'normal' THEN produtos.preco
-                       WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.preco
-                   END as produto_preco,
-                   CASE 
-                       WHEN carrinho.tipo_produto = 'normal' THEN produtos.nome
-                       WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.nome
-                   END as produto_nome
-            FROM carrinho
-            LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
-            LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
-            WHERE carrinho.id_cliente = $id_cliente
+        $_SESSION['erro_pagamento'] = "Por favor, selecione um método de pagamento!";
+        header("Location: carrinho.php");
+        exit;
+    }
+
+    // Buscar itens do carrinho
+    $stmt_itens = $conn->prepare("
+        SELECT carrinho.*, 
+               CASE 
+                   WHEN carrinho.tipo_produto = 'normal' THEN produtos.preco
+                   WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.preco
+               END as produto_preco,
+               CASE 
+                   WHEN carrinho.tipo_produto = 'normal' THEN produtos.nome
+                   WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.nome
+               END as produto_nome
+        FROM carrinho
+        LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
+        LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
+        WHERE carrinho.id_cliente = ?
+    ");
+
+    $stmt_itens->bind_param("i", $id_cliente);
+    $stmt_itens->execute();
+    $itens = $stmt_itens->get_result();
+
+    if ($itens->num_rows == 0) {
+        $_SESSION['erro_pagamento'] = "Carrinho vazio!";
+        header("Location: carrinho.php");
+        exit;
+    }
+
+    try {
+        $conn->begin_transaction();
+
+        // Gerar número do pedido UMA VEZ
+        $numero_pedido = gerarNumeroSequencial($conn);
+        $total_geral = 0;
+
+        // Calcular total e guardar itens
+        $itens_array = [];
+        while ($item = $itens->fetch_assoc()) {
+            $subtotal = $item['produto_preco'] * $item['quantidade'];
+            $total_geral += $subtotal;
+            $itens_array[] = $item;
+        }
+
+        // Criar UM ÚNICO pedido principal
+        $observacoes = "Pagamento via " . $metodo;
+        if ($numero_mesa) {
+            $observacoes .= " | Mesa: " . $numero_mesa;
+        }
+
+        $stmt_pedido = $conn->prepare("
+            INSERT INTO pedidos 
+            (numero_pedido, id_cliente, numero_mesa, total, status, status_pagamento, metodo_pagamento, observacoes, data) 
+            VALUES (?, ?, ?, ?, 'Pendente', 'Pago', ?, ?, NOW())
         ");
 
-        if ($itens->num_rows > 0) {
-            try {
-                $conn->begin_transaction();
+        $stmt_pedido->bind_param("siidss", $numero_pedido, $id_cliente, $numero_mesa, $total_geral, $metodo, $observacoes);
+        $stmt_pedido->execute();
+        $id_pedido = $stmt_pedido->insert_id;
 
-                $numero_pedido = gerarNumeroSequencial($conn);
-                $total_geral = 0;
+        // Criar tabela itens_pedido se não existir
+        $conn->query("
+            CREATE TABLE IF NOT EXISTS itens_pedido (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_pedido INT NOT NULL,
+                id_produto INT NOT NULL,
+                tipo_produto ENUM('normal', 'especial') DEFAULT 'normal',
+                quantidade INT NOT NULL,
+                preco_unitario DECIMAL(10,2) NOT NULL,
+                subtotal DECIMAL(10,2) NOT NULL,
+                observacoes TEXT,
+                FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE,
+                INDEX idx_pedido (id_pedido)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
 
-                while ($item = $itens->fetch_assoc()) {
-                    $total = $item['produto_preco'] * $item['quantidade'];
-                    $total_geral += $total;
+        // Inserir itens do pedido
+        $stmt_item = $conn->prepare("
+            INSERT INTO itens_pedido 
+            (id_pedido, id_produto, tipo_produto, quantidade, preco_unitario, subtotal) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
 
-                    $observacoes = "Pagamento via " . $metodo;
-
-                    $stmt = $conn->prepare("
-                        INSERT INTO pedidos 
-                        (numero_pedido, id_cliente, numero_mesa, id_produto, tipo_produto, quantidade, total, status, status_pagamento, metodo_pagamento, observacoes) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', 'Pago', ?, ?)
-                    ");
-
-                    $stmt->bind_param(
-                        "siiisidss",
-                        $numero_pedido,
-                        $id_cliente,
-                        $numero_mesa,
-                        $item['id_produto'],
-                        $item['tipo_produto'],
-                        $item['quantidade'],
-                        $total,
-                        $metodo,
-                        $observacoes
-                    );
-
-                    $stmt->execute();
-                }
-
-                $conn->query("DELETE FROM carrinho WHERE id_cliente = $id_cliente");
-                $conn->commit();
-
-                if ($numero_mesa) {
-                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Mesa $numero_mesa.";
-                } else {
-                    $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado!";
-                }
-
-                // LIMPAR BUFFER E REDIRECIONAR IMEDIATAMENTE
-                ob_end_clean();
-                header("Location: painel_cliente.php");
-                exit();
-
-            } catch (Exception $e) {
-                $conn->rollback();
-                $erro = "Erro: " . $e->getMessage();
-            }
-        } else {
-            $erro = "Carrinho vazio!";
+        foreach ($itens_array as $item) {
+            $subtotal = $item['produto_preco'] * $item['quantidade'];
+            $stmt_item->bind_param(
+                "iisidd",
+                $id_pedido,
+                $item['id_produto'],
+                $item['tipo_produto'],
+                $item['quantidade'],
+                $item['produto_preco'],
+                $subtotal
+            );
+            $stmt_item->execute();
         }
+
+        // Limpar carrinho
+        $stmt_limpar = $conn->prepare("DELETE FROM carrinho WHERE id_cliente = ?");
+        $stmt_limpar->bind_param("i", $id_cliente);
+        $stmt_limpar->execute();
+
+        $conn->commit();
+
+        // Mensagem de sucesso
+        if ($numero_mesa) {
+            $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Mesa $numero_mesa. Total: R$ " . number_format($total_geral, 2, ',', '.');
+        } else {
+            $_SESSION['pagamento_sucesso'] = "🎉 Pedido #$numero_pedido confirmado! Total: R$ " . number_format($total_geral, 2, ',', '.');
+        }
+
+        ob_end_clean();
+        header("Location: painel_cliente.php");
+        exit();
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['erro_pagamento'] = "Erro ao processar pedido: " . $e->getMessage();
+        header("Location: carrinho.php");
+        exit;
     }
 }
 
-// Buscar itens do carrinho
+// Buscar itens do carrinho para exibição
 $itens_carrinho = $conn->query("
     SELECT carrinho.*, 
            CASE 
@@ -160,9 +210,7 @@ while ($item = $itens_carrinho->fetch_assoc()) {
     $itens_array[] = $item;
 }
 
-$proximo_numero = gerarNumeroSequencial($conn);
-
-ob_end_flush(); // Libera o buffer para mostrar a página
+ob_end_flush();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -173,62 +221,6 @@ ob_end_flush(); // Libera o buffer para mostrar a página
     <link rel="stylesheet" href="css/pagamento.css?e=<?php echo rand(0, 10000) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            console.log('DOM carregado - Script iniciado');
-
-            const mesaSalva = localStorage.getItem('numero_mesa');
-            if (mesaSalva) {
-                document.getElementById('numero_mesa').value = mesaSalva;
-            }
-
-            document.getElementById('numero_mesa').addEventListener('input', function () {
-                if (this.value) {
-                    localStorage.setItem('numero_mesa', this.value);
-                } else {
-                    localStorage.removeItem('numero_mesa');
-                }
-            });
-
-            window.selecionarMetodo = function (metodo) {
-                console.log('Método selecionado:', metodo);
-
-                document.getElementById(metodo).checked = true;
-
-                document.querySelectorAll('.area-pagamento').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.metodo-card').forEach(el => el.classList.remove('selected'));
-
-                event.currentTarget.classList.add('selected');
-                document.getElementById('area-' + metodo).style.display = 'block';
-                document.getElementById('btn-confirmar').disabled = false;
-
-                console.log('Botão habilitado');
-            }
-
-            document.getElementById('payment-form').addEventListener('submit', function (e) {
-                console.log('FORMULÁRIO ENVIADO!');
-
-                const metodo = document.querySelector('input[name="metodo_pagamento"]:checked');
-                console.log('Método marcado:', metodo ? metodo.value : 'NENHUM');
-
-                if (!metodo) {
-                    e.preventDefault();
-                    alert('Por favor, selecione um método de pagamento!');
-                    console.log('BLOQUEADO - Nenhum método selecionado');
-                    return false;
-                }
-
-                const btn = document.getElementById('btn-confirmar');
-                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processando...';
-                btn.disabled = true;
-
-                console.log('Enviando formulário para o servidor...');
-                return true;
-            });
-
-            console.log('Script configurado com sucesso!');
-        });
-    </script>
 </head>
 
 <body>

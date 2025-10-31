@@ -1,14 +1,47 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php";
+
+// Se já estiver logado, redirecionar
+if (isset($_SESSION['usuario']) && isset($_SESSION['tipo'])) {
+    switch ($_SESSION['tipo']) {
+        case 'cliente':
+            header("Location: painel_cliente.php");
+            break;
+        case 'dono':
+            header("Location: painel_dono.php");
+            break;
+        case 'funcionario':
+            header("Location: painel_funcionario.php");
+            break;
+    }
+    exit;
+}
 
 $msg = "";
 $msg_tipo = "erro";
 
+// Mensagens de erro da URL
+if (isset($_GET['erro'])) {
+    switch ($_GET['erro']) {
+        case 'sessao_invalida':
+            $msg = "Sua sessão é inválida. Faça login novamente.";
+            break;
+        case 'sessao_expirada':
+            $msg = "Sua sessão expirou. Faça login novamente.";
+            break;
+        case 'tipo_invalido':
+            $msg = "Você não tem permissão para acessar essa área.";
+            break;
+    }
+}
+
+if (isset($_GET['logout'])) {
+    $msg = "Logout realizado com sucesso!";
+    $msg_tipo = "sucesso";
+}
+
 // --- Login ---
 if (isset($_POST['acao']) && $_POST['acao'] == "login") {
-
-    // Validar CSRF
     if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
         $msg = "Token de segurança inválido!";
         logSeguranca('csrf_invalido', 'Tentativa de login com token inválido', ['post' => $_POST]);
@@ -16,11 +49,9 @@ if (isset($_POST['acao']) && $_POST['acao'] == "login") {
         $email = limparEntrada($_POST['email']);
         $senha = $_POST['senha'];
 
-        // Validar email
         if (!validarEmail($email)) {
             $msg = "Email inválido!";
         } else {
-            // Verificar rate limiting
             $rate_check = verificarRateLimit($email);
 
             if (is_array($rate_check) && isset($rate_check['bloqueado'])) {
@@ -32,17 +63,13 @@ if (isset($_POST['acao']) && $_POST['acao'] == "login") {
                     'tempo_restante' => $rate_check['tempo_restante']
                 ]);
             } else {
-                // Buscar usuário
                 $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $res = $stmt->get_result()->fetch_assoc();
 
                 if ($res && password_verify($senha, $res['senha'])) {
-                    // Login bem-sucedido
                     limparRateLimit($email);
-
-                    // Regenerar sessão
                     session_regenerate_id(true);
 
                     $_SESSION['usuario'] = $res['nome'];
@@ -76,8 +103,6 @@ if (isset($_POST['acao']) && $_POST['acao'] == "login") {
 
 // --- Cadastro ---
 if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
-
-    // Validar CSRF
     if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
         $msg = "Token de segurança inválido!";
         logSeguranca('csrf_invalido', 'Tentativa de cadastro com token inválido');
@@ -87,7 +112,6 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
         $senha = $_POST['senha'];
         $tipo = $_POST['tipo'];
 
-        // Validações
         if (empty($nome) || empty($email) || empty($senha)) {
             $msg = "Todos os campos são obrigatórios!";
         } elseif (!validarEmail($email)) {
@@ -97,7 +121,6 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
         } elseif (!in_array($tipo, ['cliente', 'dono'])) {
             $msg = "Tipo de usuário inválido!";
         } else {
-            // Verificar se email já existe
             $stmt = $conn->prepare("SELECT id FROM usuarios WHERE email=?");
             $stmt->bind_param("s", $email);
             $stmt->execute();
@@ -128,7 +151,6 @@ if (isset($_POST['acao']) && $_POST['acao'] == "cadastro") {
     }
 }
 
-// Gerar novo token CSRF
 $csrf_token = gerarTokenCSRF();
 ?>
 

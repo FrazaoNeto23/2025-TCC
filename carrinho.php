@@ -1,6 +1,9 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php";
+include "verificar_sessao.php";
+
+verificarCliente();
+$id_cliente = $_SESSION['id_usuario'];
 
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
     header("Location: index.php");

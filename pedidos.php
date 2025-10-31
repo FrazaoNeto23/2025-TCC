@@ -1,16 +1,26 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php";
+include "verificar_sessao.php";
 
+verificarDono(); // Ou verificarFuncionario() se funcionários também podem acessar
+
+// ... resto do código
 if (!isset($_SESSION['usuario'])) {
     header("Location: index.php");
     exit;
 }
 
-// Atualizar status via GET
+// Atualizar status via GET - CORRIGIDO
 if (isset($_GET['update_status'], $_GET['id'])) {
     $novo_status = $_GET['update_status'];
     $id_pedido = intval($_GET['id']);
+    
+    // Validar status permitido
+    $status_validos = ['Pendente', 'Em preparo', 'Entregando', 'Entregue', 'Cancelado'];
+    if (!in_array($novo_status, $status_validos)) {
+        die("Status inválido");
+    }
+    
     $stmt = $conn->prepare("UPDATE pedidos SET status=? WHERE id=?");
     $stmt->bind_param("si", $novo_status, $id_pedido);
     $stmt->execute();
@@ -28,36 +38,38 @@ if (isset($_GET['entregue'])) {
     exit;
 }
 
-// REMOVIDO: Código do botão "limpar_antigos"
-
-// Filtros
+// Filtros - CORRIGIDO COM PREPARED STATEMENTS
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : 'todos';
 $filtro_pagamento = isset($_GET['pagamento']) ? $_GET['pagamento'] : 'todos';
 
 $where_clauses = [];
+$params = [];
+$types = "";
+
 if ($filtro_status != 'todos') {
-    $where_clauses[] = "pedidos.status = '" . $conn->real_escape_string($filtro_status) . "'";
+    $where_clauses[] = "pedidos.status = ?";
+    $params[] = $filtro_status;
+    $types .= "s";
 }
+
 if ($filtro_pagamento != 'todos') {
-    $where_clauses[] = "pedidos.status_pagamento = '" . $conn->real_escape_string($filtro_pagamento) . "'";
+    $where_clauses[] = "pedidos.status_pagamento = ?";
+    $params[] = $filtro_pagamento;
+    $types .= "s";
 }
 
-$where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";
-
-// Adicionar filtro automático para esconder pedidos entregues E pagos
+// Condição para esconder pedidos finalizados
 if (empty($where_clauses)) {
-    // Se não há filtros aplicados, mostrar apenas pedidos ativos
     $where_sql = "WHERE NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
 } else {
-    // Se há filtros, adicionar condição para esconder pedidos finalizados (exceto se filtrar por "Entregue")
     if ($filtro_status != 'Entregue') {
         $where_clauses[] = "NOT (pedidos.status = 'Entregue' AND pedidos.status_pagamento = 'Pago')";
-        $where_sql = "WHERE " . implode(" AND ", $where_clauses);
     }
+    $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 }
 
-// Busca pedidos com informações do cliente e produto
-$pedidos = $conn->query("
+// Busca pedidos - CORRIGIDO
+$sql = "
     SELECT pedidos.*, 
            usuarios.nome AS cliente_nome,
            usuarios.email AS cliente_email,
@@ -82,9 +94,18 @@ $pedidos = $conn->query("
             ELSE 4
         END,
         pedidos.data DESC
-");
+";
 
-// Estatísticas
+if (!empty($params)) {
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $pedidos = $stmt->get_result();
+} else {
+    $pedidos = $conn->query($sql);
+}
+
+// Estatísticas - sem parâmetros, pode ficar sem prepared statement
 $stats = $conn->query("
     SELECT 
         COUNT(*) as total,
@@ -97,7 +118,7 @@ $stats = $conn->query("
     WHERE data >= CURDATE()
 ")->fetch_assoc();
 ?>
-
+<!-- Resto do HTML permanece igual -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 

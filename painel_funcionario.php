@@ -1,7 +1,10 @@
 <?php
-session_start();
-include "config.php";
+include "config_seguro.php";
+include "verificar_sessao.php";
 
+verificarDono(); // Só o dono gerencia funcionários
+
+// ... resto do código
 // Login de funcionário
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_func'])) {
     $email = $_POST['email'];
