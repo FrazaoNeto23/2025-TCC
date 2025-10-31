@@ -1,0 +1,328 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(-45deg, #0f0f0f, #121212, #0f0f0f, #121212);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Container principal */
+.container {
+    background: #1e1e1e;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+    border: 2px solid #0ff;
+    width: min(92vw, 420px);
+    overflow: hidden;
+    position: relative;
+    animation: fadeInScale 0.6s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Efeito de brilho no container */
+.container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.1), transparent 70%);
+    animation: rotateGlow 10s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotateGlow {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Título */
+h1 {
+    color: #0ff;
+    margin-bottom: 10px;
+    font-size: 28px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    animation: glowPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+    from {
+        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    }
+
+    to {
+        text-shadow: 0 0 20px #0ff, 0 0 30px #0ff, 0 0 40px #0ff;
+    }
+}
+
+/* Mensagens - ERRO (vermelho) */
+.msg {
+    background: linear-gradient(135deg, #ff4c4c, #e53939);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 15px rgba(255, 76, 76, 0.4);
+    animation: slideInDown 0.4s ease-out;
+}
+
+/* Mensagens - SUCESSO (verde) */
+.msg.msg-sucesso {
+    background: linear-gradient(135deg, #00cc55, #009944);
+    box-shadow: 0 4px 15px rgba(0, 204, 85, 0.4);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Área dos forms */
+.forms {
+    position: relative;
+    min-height: 350px;
+}
+
+/* Formulários com slide lateral */
+form {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: 100%;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #2a2a2a;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+form h2 {
+    color: #0ff;
+    margin-bottom: 10px;
+    font-size: 22px;
+    text-shadow: 0 0 10px #0ff;
+}
+
+form.active {
+    left: 0;
+    opacity: 1;
+}
+
+form.slide-out-left {
+    left: -100%;
+    opacity: 0;
+}
+
+form.slide-out-right {
+    left: 100%;
+    opacity: 0;
+}
+
+input,
+select {
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #0ff;
+    outline: none;
+    background: #121212;
+    color: #fff;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+input:focus,
+select:focus {
+    border-color: #00d4d4;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+input::placeholder {
+    color: #666;
+}
+
+select {
+    cursor: pointer;
+}
+
+button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #0ff, #00d4d4);
+    color: #121212;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #00d4d4, #0ff);
+    box-shadow: 0 6px 25px rgba(0, 255, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 255, 255, 0.4);
+}
+
+/* Link para alternar */
+.switch {
+    margin-top: -5px;
+    font-size: 0.95em;
+    color: #0ff;
+    cursor: pointer;
+    text-decoration: underline;
+    user-select: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.switch:hover {
+    color: #00d4d4;
+    text-shadow: 0 0 10px #0ff;
+    transform: scale(1.05);
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    .container {
+        padding: 25px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    form {
+        padding: 20px;
+    }
+
+    form h2 {
+        font-size: 20px;
+    }
+
+    input,
+    select,
+    button {
+        font-size: 16px !important;
+    }
+}
+
+/* Mobile Stability */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+@supports (min-height: 100dvh) {
+    body {
+        min-height: 100dvh;
+    }
+}
+
+/* Loading state para botões */
+button.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+button.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(18, 18, 18, 0.3);
+    border-top-color: #121212;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+@keyframes spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
