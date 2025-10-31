@@ -109,7 +109,6 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -138,7 +137,7 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             margin-bottom: 30px;
         }
 
@@ -177,7 +176,7 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
             background: white;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             display: flex;
             gap: 15px;
@@ -224,13 +223,13 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
             background: white;
             padding: 25px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .pedido-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         .pedido-header {
@@ -439,7 +438,6 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <!-- HEADER COM ESTATÍSTICAS -->
@@ -484,14 +482,11 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
                     <option value="entregue" <?= $filtro_status == 'entregue' ? 'selected' : '' ?>>Entregues</option>
                 </select>
 
-                <input type="text" name="busca" placeholder="Buscar pedido, cliente..."
-                    value="<?= htmlspecialchars($filtro_busca) ?>">
+                <input type="text" name="busca" placeholder="Buscar pedido, cliente..." value="<?= htmlspecialchars($filtro_busca) ?>">
 
                 <button type="submit"><i class="fas fa-search"></i> Filtrar</button>
-                <a href="listar_pedidos.php" class="btn btn-status" style="text-decoration: none;"><i
-                        class="fas fa-sync"></i> Limpar</a>
-                <a href="painel_dono.php" class="btn btn-prioridade"
-                    style="text-decoration: none; margin-left: auto;"><i class="fas fa-arrow-left"></i> Voltar</a>
+                <a href="listar_pedidos.php" class="btn btn-status" style="text-decoration: none;"><i class="fas fa-sync"></i> Limpar</a>
+                <a href="painel_dono.php" class="btn btn-prioridade" style="text-decoration: none; margin-left: auto;"><i class="fas fa-arrow-left"></i> Voltar</a>
             </form>
         </div>
 
@@ -509,7 +504,7 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
                         <!-- CABEÇALHO -->
                         <div class="pedido-header">
                             <div class="pedido-numero">
-                                <i class="fas fa-receipt"></i>
+                                <i class="fas fa-receipt"></i> 
                                 #<?= $pedido['numero_pedido'] ?? $pedido['id'] ?>
                             </div>
                             <div class="pedido-prioridade prioridade-<?= $pedido['prioridade'] ?>">
@@ -544,13 +539,13 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
                             </div>
 
                             <?php if ($pedido['numero_mesa']): ?>
-                                <div class="info-item">
-                                    <i class="fas fa-chair"></i>
-                                    <div>
-                                        <div class="label">Mesa</div>
-                                        <div class="value">#<?= $pedido['numero_mesa'] ?></div>
-                                    </div>
+                            <div class="info-item">
+                                <i class="fas fa-chair"></i>
+                                <div>
+                                    <div class="label">Mesa</div>
+                                    <div class="value">#<?= $pedido['numero_mesa'] ?></div>
                                 </div>
+                            </div>
                             <?php endif; ?>
 
                             <div class="info-item">
@@ -576,10 +571,10 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
 
                         <!-- OBSERVAÇÕES -->
                         <?php if (!empty($pedido['observacoes'])): ?>
-                            <div class="observacoes">
-                                <strong><i class="fas fa-comment"></i> Observações:</strong><br>
-                                <?= nl2br(htmlspecialchars($pedido['observacoes'])) ?>
-                            </div>
+                        <div class="observacoes">
+                            <strong><i class="fas fa-comment"></i> Observações:</strong><br>
+                            <?= nl2br(htmlspecialchars($pedido['observacoes'])) ?>
+                        </div>
                         <?php endif; ?>
 
                         <!-- AÇÕES -->
@@ -621,5 +616,4 @@ $stats = $conn->query($stats_sql)->fetch_assoc();
         }
     </script>
 </body>
-
 </html>

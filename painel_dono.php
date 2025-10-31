@@ -104,7 +104,6 @@ $ultimos_pedidos = $conn->query("
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -133,7 +132,7 @@ $ultimos_pedidos = $conn->query("
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
@@ -197,13 +196,13 @@ $ultimos_pedidos = $conn->query("
             background: white;
             padding: 25px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         .stat-card .icon {
@@ -278,7 +277,7 @@ $ultimos_pedidos = $conn->query("
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             text-align: center;
             transition: transform 0.3s, box-shadow 0.3s;
             cursor: pointer;
@@ -286,7 +285,7 @@ $ultimos_pedidos = $conn->query("
 
         .action-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         .action-card i {
@@ -309,7 +308,7 @@ $ultimos_pedidos = $conn->query("
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .recent-orders h2 {
@@ -410,7 +409,6 @@ $ultimos_pedidos = $conn->query("
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <!-- HEADER -->
@@ -553,5 +551,4 @@ $ultimos_pedidos = $conn->query("
         </div>
     </div>
 </body>
-
 </html>

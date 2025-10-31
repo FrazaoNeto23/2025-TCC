@@ -61,7 +61,6 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -213,7 +212,6 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
         }
     </style>
 </head>
-
 <body>
     <div class="ticket">
         <!-- CABEÇALHO -->
@@ -238,10 +236,10 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
                 <span><?= htmlspecialchars($pedido['nome_cliente']) ?></span>
             </div>
             <?php if ($pedido['numero_mesa']): ?>
-                <div class="info-row">
-                    <strong>Mesa:</strong>
-                    <span>#<?= $pedido['numero_mesa'] ?></span>
-                </div>
+            <div class="info-row">
+                <strong>Mesa:</strong>
+                <span>#<?= $pedido['numero_mesa'] ?></span>
+            </div>
             <?php endif; ?>
             <div class="info-row">
                 <strong>Pagamento:</strong>
@@ -271,12 +269,12 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
             </thead>
             <tbody>
                 <?php foreach ($itens as $item): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($item['nome']) ?></td>
-                        <td class="qty"><?= $item['quantidade'] ?>x</td>
-                        <td class="price">R$ <?= number_format($item['preco_unitario'], 2, ',', '.') ?></td>
-                        <td class="price">R$ <?= number_format($item['subtotal'], 2, ',', '.') ?></td>
-                    </tr>
+                <tr>
+                    <td><?= htmlspecialchars($item['nome']) ?></td>
+                    <td class="qty"><?= $item['quantidade'] ?>x</td>
+                    <td class="price">R$ <?= number_format($item['preco_unitario'], 2, ',', '.') ?></td>
+                    <td class="price">R$ <?= number_format($item['subtotal'], 2, ',', '.') ?></td>
+                </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
@@ -288,10 +286,10 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
 
         <!-- OBSERVAÇÕES -->
         <?php if (!empty($pedido['observacoes'])): ?>
-            <div class="observacoes">
-                <strong>⚠️ OBSERVAÇÕES:</strong>
-                <?= nl2br(htmlspecialchars($pedido['observacoes'])) ?>
-            </div>
+        <div class="observacoes">
+            <strong>⚠️ OBSERVAÇÕES:</strong>
+            <?= nl2br(htmlspecialchars($pedido['observacoes'])) ?>
+        </div>
         <?php endif; ?>
 
         <!-- RODAPÉ -->
@@ -302,24 +300,21 @@ $itens = $stmt_itens->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()"
-            style="padding: 15px 30px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">
+        <button onclick="window.print()" style="padding: 15px 30px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">
             🖨️ Imprimir
         </button>
-        <button onclick="window.close()"
-            style="padding: 15px 30px; background: #ff6b6b; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; margin-left: 10px;">
+        <button onclick="window.close()" style="padding: 15px 30px; background: #ff6b6b; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; margin-left: 10px;">
             ❌ Fechar
         </button>
     </div>
 
     <script>
         // Auto-imprimir ao carregar
-        window.onload = function () {
-            setTimeout(function () {
+        window.onload = function() {
+            setTimeout(function() {
                 window.print();
             }, 500);
         };
     </script>
 </body>
-
 </html>
