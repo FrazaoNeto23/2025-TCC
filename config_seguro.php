@@ -8,7 +8,7 @@ define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'burger_house');
-define('DB_PORT', 3307);
+define('DB_PORT', 3306);
 
 // Configurações de Segurança
 define('CSRF_TOKEN_NAME', 'csrf_token');
