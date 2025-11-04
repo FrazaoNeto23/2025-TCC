@@ -1,7 +1,13 @@
 <?php
 ob_start();
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include "config_seguro.php";
 include "verificar_sessao.php";
+include_once "helpers.php"; // ✅ INCLUIR HELPERS
 
 verificarCliente();
 
@@ -35,6 +41,7 @@ function gerarNumeroSequencial($conn)
     $stmt->bind_param("s", $like_pattern);
     $stmt->execute();
     $resultado = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
     $proximo_numero = ($resultado['ultimo_numero'] ?? 0) + 1;
     $numero_pedido = $prefixo . '-' . str_pad($proximo_numero, 3, '0', STR_PAD_LEFT);
@@ -47,15 +54,16 @@ function gerarNumeroSequencial($conn)
 // ===== PROCESSAR PAGAMENTO - CORRIGIDO =====
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) {
     $metodo = $_POST['metodo_pagamento'] ?? '';
-    $numero_mesa = isset($_POST['numero_mesa']) && $_POST['numero_mesa'] ? intval($_POST['numero_mesa']) : null;
+    $numero_mesa = validar_numero_mesa($_POST['numero_mesa'] ?? '');
 
-    if (empty($metodo)) {
-        $_SESSION['erro_pagamento'] = "Por favor, selecione um método de pagamento!";
+    // Validar método de pagamento
+    if (!validar_metodo_pagamento($metodo)) {
+        $_SESSION['erro_pagamento'] = "❌ Método de pagamento inválido!";
         header("Location: carrinho.php");
         exit;
     }
 
-    // Buscar itens do carrinho
+    // ===== BUSCAR ITENS DO CARRINHO - APENAS PRODUTOS VÁLIDOS =====
     $stmt_itens = $conn->prepare("
         SELECT carrinho.*, 
                CASE 
@@ -67,9 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
                    WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.nome
                END as produto_nome
         FROM carrinho
-        LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
-        LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
+        LEFT JOIN produtos ON carrinho.id_produto = produtos.id 
+            AND carrinho.tipo_produto = 'normal' 
+            AND produtos.disponivel = 1
+        LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id 
+            AND carrinho.tipo_produto = 'especial'
         WHERE carrinho.id_cliente = ?
+            AND (
+                (carrinho.tipo_produto = 'normal' AND produtos.id IS NOT NULL) OR
+                (carrinho.tipo_produto = 'especial' AND produtos_especiais.id IS NOT NULL)
+            )
     ");
 
     $stmt_itens->bind_param("i", $id_cliente);
@@ -77,7 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
     $itens = $stmt_itens->get_result();
 
     if ($itens->num_rows == 0) {
-        $_SESSION['erro_pagamento'] = "Carrinho vazio!";
+        $_SESSION['erro_pagamento'] = "❌ Carrinho vazio ou contém produtos inválidos!";
+        header("Location: carrinho.php");
+        exit;
+    }
+
+    // Transformar em array para validação
+    $itens_array = [];
+    while ($item = $itens->fetch_assoc()) {
+        $itens_array[] = $item;
+    }
+
+    // ===== VALIDAR INTEGRIDADE COMPLETA =====
+    $verificacao = verificar_integridade_pedido($conn, $id_cliente, $itens_array);
+
+    if (!$verificacao['valido']) {
+        $_SESSION['erro_pagamento'] = "⚠️ Erro: " . implode(", ", $verificacao['erros']);
         header("Location: carrinho.php");
         exit;
     }
@@ -85,24 +115,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
     try {
         $conn->begin_transaction();
 
-        // Gerar número do pedido UMA VEZ
+        // Gerar número do pedido
         $numero_pedido = gerarNumeroSequencial($conn);
         $total_geral = 0;
 
-        // Calcular total e guardar itens
-        $itens_array = [];
-        while ($item = $itens->fetch_assoc()) {
+        // Calcular total
+        foreach ($itens_array as $item) {
             $subtotal = $item['produto_preco'] * $item['quantidade'];
             $total_geral += $subtotal;
-            $itens_array[] = $item;
         }
 
-        // Criar UM ÚNICO pedido principal
-        $observacoes = "Pagamento via " . $metodo;
+        // Criar observações
+        $observacoes = "Pagamento via " . ucfirst($metodo);
         if ($numero_mesa) {
             $observacoes .= " | Mesa: " . $numero_mesa;
         }
 
+        // Criar pedido principal
         $stmt_pedido = $conn->prepare("
             INSERT INTO pedidos 
             (numero_pedido, id_cliente, numero_mesa, total, status, status_pagamento, metodo_pagamento, observacoes, data) 
@@ -110,8 +139,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
         ");
 
         $stmt_pedido->bind_param("siidss", $numero_pedido, $id_cliente, $numero_mesa, $total_geral, $metodo, $observacoes);
-        $stmt_pedido->execute();
+
+        if (!$stmt_pedido->execute()) {
+            throw new Exception("Erro ao criar pedido: " . $conn->error);
+        }
+
         $id_pedido = $stmt_pedido->insert_id;
+        $stmt_pedido->close();
 
         // Criar tabela itens_pedido se não existir
         $conn->query("
@@ -147,13 +181,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
                 $item['produto_preco'],
                 $subtotal
             );
-            $stmt_item->execute();
+
+            if (!$stmt_item->execute()) {
+                throw new Exception("Erro ao inserir item: " . $conn->error);
+            }
         }
+        $stmt_item->close();
 
         // Limpar carrinho
         $stmt_limpar = $conn->prepare("DELETE FROM carrinho WHERE id_cliente = ?");
         $stmt_limpar->bind_param("i", $id_cliente);
         $stmt_limpar->execute();
+        $stmt_limpar->close();
 
         $conn->commit();
 
@@ -170,13 +209,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['metodo_pagamento'])) 
 
     } catch (Exception $e) {
         $conn->rollback();
-        $_SESSION['erro_pagamento'] = "Erro ao processar pedido: " . $e->getMessage();
+        $_SESSION['erro_pagamento'] = "❌ Erro ao processar pedido: " . $e->getMessage();
+
+        log_erro_integridade($conn, 'erro_finalizar_pedido', $e->getMessage(), [
+            'id_cliente' => $id_cliente,
+            'metodo' => $metodo,
+            'total_itens' => count($itens_array)
+        ]);
+
         header("Location: carrinho.php");
         exit;
     }
 }
 
-// Buscar itens do carrinho para exibição
+// ===== BUSCAR ITENS PARA EXIBIÇÃO =====
 $itens_carrinho = $conn->query("
     SELECT carrinho.*, 
            CASE 
@@ -192,9 +238,16 @@ $itens_carrinho = $conn->query("
                WHEN carrinho.tipo_produto = 'especial' THEN produtos_especiais.imagem
            END as produto_imagem
     FROM carrinho
-    LEFT JOIN produtos ON carrinho.id_produto = produtos.id AND carrinho.tipo_produto = 'normal'
-    LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id AND carrinho.tipo_produto = 'especial'
+    LEFT JOIN produtos ON carrinho.id_produto = produtos.id 
+        AND carrinho.tipo_produto = 'normal'
+        AND produtos.disponivel = 1
+    LEFT JOIN produtos_especiais ON carrinho.id_produto = produtos_especiais.id 
+        AND carrinho.tipo_produto = 'especial'
     WHERE carrinho.id_cliente = $id_cliente
+        AND (
+            (carrinho.tipo_produto = 'normal' AND produtos.id IS NOT NULL) OR
+            (carrinho.tipo_produto = 'especial' AND produtos_especiais.id IS NOT NULL)
+        )
 ");
 
 if ($itens_carrinho->num_rows == 0) {
@@ -229,9 +282,11 @@ ob_end_flush();
 
         <h1><i class="fa fa-credit-card"></i> Finalizar Pedido</h1>
 
-        <?php if (isset($erro)): ?>
+        <?php if (isset($_SESSION['erro_pagamento'])): ?>
             <div style="background:#ff4c4c;color:#fff;padding:15px;border-radius:8px;margin-bottom:20px;">
-                <i class="fa fa-exclamation-triangle"></i> <?= $erro ?>
+                <i class="fa fa-exclamation-triangle"></i>
+                <?= $_SESSION['erro_pagamento'];
+                unset($_SESSION['erro_pagamento']); ?>
             </div>
         <?php endif; ?>
 
@@ -239,7 +294,7 @@ ob_end_flush();
             <h2><i class="fa fa-receipt"></i> Resumo do Pedido</h2>
             <?php foreach ($itens_array as $item): ?>
                 <p>
-                    <strong><?= htmlspecialchars($item['produto_nome']) ?></strong><br>
+                    <strong><?= sanitizar_texto($item['produto_nome']) ?></strong><br>
                     <span style="color:#aaa;font-size:14px;">
                         Qtd: <?= $item['quantidade'] ?> × R$ <?= number_format($item['produto_preco'], 2, ',', '.') ?> =
                         <strong style="color:#0ff;">R$

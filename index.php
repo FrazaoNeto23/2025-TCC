@@ -1,19 +1,30 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include "config.php";
 
-// ===== VERIFICAR E ADICIONAR COLUNA CATEGORIA SE NÃO EXISTIR =====
+// ===== VERIFICAR E ADICIONAR COLUNA CATEGORIA =====
 $check_categoria = $conn->query("SHOW COLUMNS FROM produtos LIKE 'categoria'");
 if ($check_categoria->num_rows == 0) {
     $conn->query("ALTER TABLE produtos ADD COLUMN categoria VARCHAR(50) AFTER preco");
     $conn->query("ALTER TABLE produtos ADD INDEX idx_categoria (categoria)");
 }
 
-// ===== PROCESSAR FILTROS =====
-$categoria_filtro = $_GET['categoria'] ?? '';
-$busca = $_GET['busca'] ?? '';
+// ===== VERIFICAR COLUNA DISPONIVEL =====
+$check_disponivel = $conn->query("SHOW COLUMNS FROM produtos LIKE 'disponivel'");
+if ($check_disponivel->num_rows == 0) {
+    $conn->query("ALTER TABLE produtos ADD COLUMN disponivel TINYINT(1) DEFAULT 1 AFTER imagem");
+}
 
-// ===== BUSCAR PRODUTOS COM FILTROS =====
+// ===== PROCESSAR FILTROS COM SANITIZAÇÃO =====
+include_once "helpers.php";
+
+$categoria_filtro = isset($_GET['categoria']) ? sanitizar_texto($_GET['categoria']) : '';
+$busca = isset($_GET['busca']) ? sanitizar_texto($_GET['busca']) : '';
+
+// ===== BUSCAR PRODUTOS COM FILTROS - APENAS DISPONÍVEIS =====
 $where_conditions = ["disponivel = 1"];
 $params = [];
 $types = "";
@@ -43,6 +54,7 @@ if (!empty($params)) {
 
 $stmt->execute();
 $produtos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 // ===== BUSCAR CATEGORIAS ÚNICAS =====
 $categorias = $conn->query("
@@ -60,6 +72,7 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +94,7 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
         .header {
             background: white;
             padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -158,7 +171,7 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
             border-radius: 15px;
             text-align: center;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
         .hero h1 {
@@ -193,7 +206,7 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .filters form {
@@ -227,13 +240,13 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
             background: white;
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .produto-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
         }
 
         .produto-imagem {
@@ -338,6 +351,7 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
         }
     </style>
 </head>
+
 <body>
     <!-- HEADER -->
     <div class="header">
@@ -352,18 +366,28 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
                         <a href="carrinho.php" class="btn btn-primary carrinho-badge">
                             <i class="fas fa-shopping-cart"></i> Carrinho
                             <?php
-                            $count = $conn->query("SELECT COUNT(*) as total FROM carrinho WHERE id_cliente = " . $_SESSION['id_usuario'])->fetch_assoc()['total'];
+                            $count = $conn->query("
+                                SELECT COUNT(*) as total FROM carrinho c
+                                WHERE c.id_cliente = " . $_SESSION['id_usuario'] . "
+                                AND (
+                                    (c.tipo_produto = 'normal' AND EXISTS(SELECT 1 FROM produtos WHERE id = c.id_produto AND disponivel = 1)) OR
+                                    (c.tipo_produto = 'especial' AND EXISTS(SELECT 1 FROM produtos_especiais WHERE id = c.id_produto))
+                                )
+                            ")->fetch_assoc()['total'];
                             if ($count > 0):
-                            ?>
+                                ?>
                                 <span class="badge"><?= $count ?></span>
                             <?php endif; ?>
+                        </a>
+                        <a href="painel_cliente.php" class="btn btn-primary">
+                            <i class="fas fa-user"></i> Minha Conta
                         </a>
                     <?php else: ?>
                         <a href="painel_dono.php" class="btn btn-primary">
                             <i class="fas fa-tachometer-alt"></i> Painel
                         </a>
                     <?php endif; ?>
-                    <span>Olá, <?= htmlspecialchars($_SESSION['usuario']) ?>!</span>
+                    <span>Olá, <?= sanitizar_texto($_SESSION['usuario']) ?>!</span>
                     <a href="logout.php" class="btn btn-danger">
                         <i class="fas fa-sign-out-alt"></i> Sair
                     </a>
@@ -406,18 +430,15 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
                     <option value="">Todas as Categorias</option>
                     <?php foreach ($categorias as $cat): ?>
                         <?php if (!empty($cat['categoria'])): ?>
-                            <option value="<?= htmlspecialchars($cat['categoria']) ?>" 
-                                    <?= $categoria_filtro == $cat['categoria'] ? 'selected' : '' ?>>
+                            <option value="<?= htmlspecialchars($cat['categoria']) ?>" <?= $categoria_filtro == $cat['categoria'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($cat['categoria']) ?>
                             </option>
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </select>
 
-                <input type="text" 
-                       name="busca" 
-                       placeholder="Buscar produtos..." 
-                       value="<?= htmlspecialchars($busca) ?>">
+                <input type="text" name="busca" placeholder="Buscar produtos..."
+                    value="<?= htmlspecialchars($busca) ?>">
 
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search"></i> Buscar
@@ -441,9 +462,8 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
                 <?php foreach ($produtos as $produto): ?>
                     <div class="produto-card">
                         <?php if ($produto['imagem'] && file_exists($produto['imagem'])): ?>
-                            <img src="<?= $produto['imagem'] ?>" 
-                                 alt="<?= htmlspecialchars($produto['nome']) ?>" 
-                                 class="produto-imagem">
+                            <img src="<?= htmlspecialchars($produto['imagem']) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>"
+                                class="produto-imagem">
                         <?php else: ?>
                             <div class="produto-imagem" style="display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-hamburger" style="font-size: 64px; color: #ccc;"></i>
@@ -468,6 +488,8 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
                                 <?php if (isset($_SESSION['usuario']) && $_SESSION['tipo'] == 'cliente'): ?>
                                     <form method="POST" action="carrinho.php">
                                         <input type="hidden" name="id_produto" value="<?= $produto['id'] ?>">
+                                        <input type="hidden" name="tipo_produto" value="normal">
+                                        <input type="hidden" name="quantidade" value="1">
                                         <input type="hidden" name="redirect" value="index.php">
                                         <button type="submit" name="adicionar_carrinho" class="btn btn-success">
                                             <i class="fas fa-cart-plus"></i> Adicionar
@@ -486,4 +508,5 @@ unset($_SESSION['sucesso'], $_SESSION['erro']);
         </div>
     </div>
 </body>
+
 </html>

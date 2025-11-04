@@ -1,56 +1,48 @@
 <?php
-include "config_seguro.php"; // Já inicia a sessão
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+include "config_seguro.php";
 include "verificar_sessao.php";
+include_once "helpers.php"; // ✅ ADICIONAR HELPERS
 
 verificarCliente();
 
 $id_cliente = $_SESSION['id_usuario'];
+$msg = "";
 
-if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
-    header("Location: index.php");
-    exit;
+// ===== LIMPAR CARRINHO DE PRODUTOS INEXISTENTES =====
+$removidos = limpar_carrinho_invalido($conn, $id_cliente);
+if ($removidos > 0) {
+    $msg = "⚠️ $removidos item(ns) inválido(s) foram removidos do seu carrinho.";
 }
 
-$msg = "";
-$id_cliente = $_SESSION['id_usuario'];
-
-// ===== ADICIONAR AO CARRINHO - JÁ ESTÁ BOM =====
+// ===== ADICIONAR AO CARRINHO - CORRIGIDO COM VALIDAÇÃO =====
 if (isset($_POST['adicionar_carrinho'])) {
     $id_produto = intval($_POST['id_produto']);
     $quantidade = intval($_POST['quantidade']);
-    $tipo_produto = $_POST['tipo_produto'];
+    $tipo_produto = $_POST['tipo_produto'] ?? 'normal';
 
     try {
-        // Validar tipo de produto
-        if (!in_array($tipo_produto, ['normal', 'especial'])) {
-            throw new Exception("Tipo de produto inválido");
-        }
-        
         // Validar quantidade
-        if ($quantidade < 1 || $quantidade > 99) {
-            throw new Exception("Quantidade inválida");
-        }
-        
-        // Validar produto
-        $produto_valido = false;
-        if ($tipo_produto == 'normal') {
-            $check = $conn->prepare("SELECT id FROM produtos WHERE id = ?");
-            $check->bind_param("i", $id_produto);
-            $check->execute();
-            $produto_valido = $check->get_result()->num_rows > 0;
-            $check->close();
-        } elseif ($tipo_produto == 'especial') {
-            $check = $conn->prepare("SELECT id FROM produtos_especiais WHERE id = ?");
-            $check->bind_param("i", $id_produto);
-            $check->execute();
-            $produto_valido = $check->get_result()->num_rows > 0;
-            $check->close();
+        $quantidade = validar_quantidade($quantidade);
+        if (!$quantidade) {
+            throw new Exception("Quantidade inválida (1-99)");
         }
 
-        if (!$produto_valido) {
-            $msg = "❌ Produto não encontrado!";
+        // VALIDAR PRODUTO ANTES DE ADICIONAR
+        $validacao = validar_produto($conn, $id_produto, $tipo_produto);
+
+        if (!$validacao['exists']) {
+            $msg = "❌ " . $validacao['erro'];
+            log_erro_integridade($conn, 'produto_invalido', $validacao['erro'], [
+                'id_produto' => $id_produto,
+                'tipo_produto' => $tipo_produto,
+                'id_cliente' => $id_cliente
+            ]);
         } else {
-            // Verificar se já existe
+            // Produto válido - verificar se já existe no carrinho
             $stmt = $conn->prepare("
                 SELECT id, quantidade FROM carrinho 
                 WHERE id_cliente=? AND id_produto=? AND tipo_produto=?
@@ -60,14 +52,9 @@ if (isset($_POST['adicionar_carrinho'])) {
             $resultado = $stmt->get_result();
 
             if ($resultado->num_rows > 0) {
-                // Atualizar quantidade
+                // Atualizar quantidade existente
                 $item = $resultado->fetch_assoc();
-                $nova_qtd = $item['quantidade'] + $quantidade;
-                
-                // Validar nova quantidade
-                if ($nova_qtd > 99) {
-                    $nova_qtd = 99;
-                }
+                $nova_qtd = min($item['quantidade'] + $quantidade, 99);
 
                 $update = $conn->prepare("UPDATE carrinho SET quantidade=? WHERE id=?");
                 $update->bind_param("ii", $nova_qtd, $item['id']);
@@ -76,7 +63,7 @@ if (isset($_POST['adicionar_carrinho'])) {
 
                 $msg = "✅ Quantidade atualizada no carrinho!";
             } else {
-                // Inserir novo
+                // Inserir novo item
                 $insert = $conn->prepare("
                     INSERT INTO carrinho (id_cliente, id_produto, quantidade, tipo_produto, data_adicao) 
                     VALUES (?, ?, ?, ?, NOW())
@@ -91,6 +78,10 @@ if (isset($_POST['adicionar_carrinho'])) {
         }
     } catch (Exception $e) {
         $msg = "❌ Erro: " . $e->getMessage();
+        log_erro_integridade($conn, 'erro_carrinho', $e->getMessage(), [
+            'id_cliente' => $id_cliente,
+            'id_produto' => $id_produto ?? 0
+        ]);
     }
 }
 
@@ -102,7 +93,7 @@ if (isset($_SESSION['pagamento_sucesso'])) {
 
 // ===== BUSCAR PRODUTOS =====
 try {
-    $produtos = $conn->query("SELECT * FROM produtos ORDER BY nome");
+    $produtos = $conn->query("SELECT * FROM produtos WHERE disponivel = 1 ORDER BY nome");
     $produtos_especiais = $conn->query("SELECT * FROM produtos_especiais ORDER BY nome");
 
     // Buscar pedidos - CORRIGIDO
@@ -128,8 +119,15 @@ try {
     $stmt_pedidos->execute();
     $pedidos = $stmt_pedidos->get_result();
 
-    // Contar carrinho
-    $stmt_count = $conn->prepare("SELECT COUNT(*) as total FROM carrinho WHERE id_cliente=?");
+    // Contar carrinho - APENAS PRODUTOS VÁLIDOS
+    $stmt_count = $conn->prepare("
+        SELECT COUNT(*) as total FROM carrinho c
+        WHERE c.id_cliente = ?
+        AND (
+            (c.tipo_produto = 'normal' AND EXISTS(SELECT 1 FROM produtos WHERE id = c.id_produto AND disponivel = 1)) OR
+            (c.tipo_produto = 'especial' AND EXISTS(SELECT 1 FROM produtos_especiais WHERE id = c.id_produto))
+        )
+    ");
     $stmt_count->bind_param("i", $id_cliente);
     $stmt_count->execute();
     $count_carrinho = $stmt_count->get_result()->fetch_assoc()['total'];
@@ -139,7 +137,6 @@ try {
     die("Erro ao carregar dados: " . $e->getMessage());
 }
 ?>
-<!-- Resto do HTML permanece igual -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -154,7 +151,7 @@ try {
 <body>
     <div class="container">
         <div class="header-cliente">
-            <h1><i class="fa fa-user-circle"></i> Bem-vindo, <?php echo htmlspecialchars($_SESSION['usuario']); ?>!</h1>
+            <h1><i class="fa fa-user-circle"></i> Bem-vindo, <?php echo sanitizar_texto($_SESSION['usuario']); ?>!</h1>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <a href="carrinho.php" class="btn-carrinho">
                     <i class="fa fa-shopping-cart"></i> Carrinho
@@ -167,11 +164,12 @@ try {
         </div>
 
         <?php if ($msg): ?>
-            <div class="msg-sucesso-pedido <?= str_contains($msg, '❌') ? 'msg-error' : '' ?>" id="notification">
-                <i class="fa <?= str_contains($msg, '❌') ? 'fa-exclamation-triangle' : 'fa-check-circle' ?>"></i>
+            <div class="msg-sucesso-pedido <?= str_contains($msg, '❌') || str_contains($msg, '⚠️') ? 'msg-error' : '' ?>"
+                id="notification">
+                <i
+                    class="fa <?= str_contains($msg, '❌') || str_contains($msg, '⚠️') ? 'fa-exclamation-triangle' : 'fa-check-circle' ?>"></i>
                 <span>
                     <?php
-                    // Extrair e estilizar o número do pedido
                     if (preg_match('/#([\d-]+)/', $msg, $matches)) {
                         $numero_pedido = $matches[1];
                         $msg_formatada = str_replace(
@@ -189,18 +187,13 @@ try {
             </div>
 
             <script>
-                // Auto-fechar após 10 segundos
-                setTimeout(() => {
-                    fecharNotificacao();
-                }, 10000);
+                setTimeout(() => fecharNotificacao(), 10000);
 
                 function fecharNotificacao() {
                     const notification = document.getElementById('notification');
                     if (notification) {
                         notification.classList.add('fade-out');
-                        setTimeout(() => {
-                            notification.remove();
-                        }, 500);
+                        setTimeout(() => notification.remove(), 500);
                     }
                 }
             </script>
@@ -213,12 +206,12 @@ try {
                 <?php while ($pe = $produtos_especiais->fetch_assoc()): ?>
                     <div class="produto especial">
                         <?php if ($pe['imagem'] && file_exists("uploads/" . $pe['imagem'])): ?>
-                            <img src="uploads/<?= $pe['imagem'] ?>" alt="<?= $pe['nome'] ?>">
+                            <img src="uploads/<?= $pe['imagem'] ?>" alt="<?= sanitizar_texto($pe['nome']) ?>">
                         <?php else: ?>
                             <div class="sem-imagem"><i class="fa fa-star"></i></div>
                         <?php endif; ?>
-                        <h3><?= htmlspecialchars($pe['nome']) ?></h3>
-                        <p class="descricao"><?= htmlspecialchars($pe['descricao'] ?? '') ?></p>
+                        <h3><?= sanitizar_texto($pe['nome']) ?></h3>
+                        <p class="descricao"><?= sanitizar_texto($pe['descricao'] ?? '') ?></p>
                         <p class="preco">R$ <?= number_format($pe['preco'], 2, ',', '.') ?></p>
 
                         <form method="POST">
@@ -245,12 +238,12 @@ try {
                 <?php while ($p = $produtos->fetch_assoc()): ?>
                     <div class="produto">
                         <?php if ($p['imagem'] && file_exists("uploads/" . $p['imagem'])): ?>
-                            <img src="uploads/<?= $p['imagem'] ?>" alt="<?= $p['nome'] ?>">
+                            <img src="uploads/<?= $p['imagem'] ?>" alt="<?= sanitizar_texto($p['nome']) ?>">
                         <?php else: ?>
                             <div class="sem-imagem"><i class="fa fa-image"></i></div>
                         <?php endif; ?>
-                        <h3><?= htmlspecialchars($p['nome']) ?></h3>
-                        <p class="descricao"><?= htmlspecialchars($p['descricao'] ?? '') ?></p>
+                        <h3><?= sanitizar_texto($p['nome']) ?></h3>
+                        <p class="descricao"><?= sanitizar_texto($p['descricao'] ?? '') ?></p>
                         <p class="preco">R$ <?= number_format($p['preco'], 2, ',', '.') ?></p>
 
                         <form method="POST">
@@ -283,7 +276,7 @@ try {
                             </span>
                         </div>
                         <div class="pedido-info">
-                            <h3><?= htmlspecialchars($pd['produto_nome'] ?? 'Produto') ?></h3>
+                            <h3><?= sanitizar_texto($pd['produto_nome'] ?? 'Produto') ?></h3>
                             <p><i class="fa fa-box"></i> Quantidade: <?= $pd['quantidade'] ?></p>
                             <p class="pedido-total"><i class="fa fa-dollar-sign"></i> Total: R$
                                 <?= number_format($pd['total'], 2, ',', '.') ?>

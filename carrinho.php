@@ -1,6 +1,10 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 include "config.php";
+include_once "helpers.php"; // ✅ INCLUIR HELPERS
 
 // Verificar se usuário está logado
 if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
@@ -10,72 +14,87 @@ if (!isset($_SESSION['usuario']) || $_SESSION['tipo'] != "cliente") {
 
 $id_cliente = $_SESSION['id_usuario'];
 
-// ===== ADICIONAR AO CARRINHO (CORRIGIDO) =====
+// ===== LIMPAR PRODUTOS INVÁLIDOS DO CARRINHO =====
+$removidos = limpar_carrinho_invalido($conn, $id_cliente);
+if ($removidos > 0) {
+    $_SESSION['aviso'] = "⚠️ $removidos item(ns) inválido(s) foram removidos do carrinho.";
+}
+
+// ===== ADICIONAR AO CARRINHO - CORRIGIDO COM VALIDAÇÃO =====
 if (isset($_POST['adicionar_carrinho'])) {
     $id_produto = intval($_POST['id_produto']);
-    $quantidade = isset($_POST['quantidade']) ? intval($_POST['quantidade']) : 1;
-    
-    // Validar quantidade
-    if ($quantidade < 1) {
-        $quantidade = 1;
-    }
-    
-    // ===== VERIFICAR SE O PRODUTO EXISTE E ESTÁ DISPONÍVEL =====
-    $stmt_verifica = $conn->prepare("
-        SELECT id, nome, preco, disponivel 
-        FROM produtos 
-        WHERE id = ? AND disponivel = 1
-    ");
-    $stmt_verifica->bind_param("i", $id_produto);
-    $stmt_verifica->execute();
-    $produto = $stmt_verifica->get_result()->fetch_assoc();
-    
-    if (!$produto) {
-        $_SESSION['erro'] = "Produto não encontrado ou indisponível!";
-        header("Location: index.php");
-        exit;
-    }
-    
-    // ===== VERIFICAR SE JÁ EXISTE NO CARRINHO =====
-    $stmt_check = $conn->prepare("
-        SELECT id, quantidade 
-        FROM carrinho 
-        WHERE id_cliente = ? AND id_produto = ?
-    ");
-    $stmt_check->bind_param("ii", $id_cliente, $id_produto);
-    $stmt_check->execute();
-    $item_existente = $stmt_check->get_result()->fetch_assoc();
-    
-    if ($item_existente) {
-        // Atualizar quantidade
-        $nova_quantidade = $item_existente['quantidade'] + $quantidade;
-        $stmt_update = $conn->prepare("
-            UPDATE carrinho 
-            SET quantidade = ? 
-            WHERE id = ?
-        ");
-        $stmt_update->bind_param("ii", $nova_quantidade, $item_existente['id']);
-        
-        if ($stmt_update->execute()) {
-            $_SESSION['sucesso'] = "Quantidade atualizada no carrinho!";
-        } else {
-            $_SESSION['erro'] = "Erro ao atualizar carrinho: " . $conn->error;
+    $quantidade = intval($_POST['quantidade']);
+    $tipo_produto = $_POST['tipo_produto'] ?? 'normal';
+
+    try {
+        // Validar quantidade
+        $quantidade = validar_quantidade($quantidade);
+        if (!$quantidade) {
+            throw new Exception("Quantidade inválida (1-99)");
         }
-    } else {
-        // Inserir novo item
-        $stmt_insert = $conn->prepare("
-            INSERT INTO carrinho (id_cliente, id_produto, quantidade) 
-            VALUES (?, ?, ?)
-        ");
-        $stmt_insert->bind_param("iii", $id_cliente, $id_produto, $quantidade);
-        
-        if ($stmt_insert->execute()) {
-            $_SESSION['sucesso'] = "Produto adicionado ao carrinho!";
+
+        // VALIDAR PRODUTO
+        $validacao = validar_produto($conn, $id_produto, $tipo_produto);
+
+        if (!$validacao['exists']) {
+            $_SESSION['erro'] = $validacao['erro'];
+            log_erro_integridade($conn, 'produto_invalido', $validacao['erro'], [
+                'id_produto' => $id_produto,
+                'tipo_produto' => $tipo_produto,
+                'id_cliente' => $id_cliente
+            ]);
         } else {
-            $_SESSION['erro'] = "Erro ao adicionar ao carrinho: " . $conn->error;
+            // Produto válido - verificar se já existe no carrinho
+            $stmt_check = $conn->prepare("
+                SELECT id, quantidade 
+                FROM carrinho 
+                WHERE id_cliente = ? AND id_produto = ? AND tipo_produto = ?
+            ");
+            $stmt_check->bind_param("iis", $id_cliente, $id_produto, $tipo_produto);
+            $stmt_check->execute();
+            $item_existente = $stmt_check->get_result()->fetch_assoc();
+            $stmt_check->close();
+
+            if ($item_existente) {
+                // Atualizar quantidade
+                $nova_quantidade = min($item_existente['quantidade'] + $quantidade, 99);
+                $stmt_update = $conn->prepare("
+                    UPDATE carrinho 
+                    SET quantidade = ? 
+                    WHERE id = ?
+                ");
+                $stmt_update->bind_param("ii", $nova_quantidade, $item_existente['id']);
+
+                if ($stmt_update->execute()) {
+                    $_SESSION['sucesso'] = "✅ Quantidade atualizada no carrinho!";
+                } else {
+                    $_SESSION['erro'] = "❌ Erro ao atualizar carrinho";
+                }
+                $stmt_update->close();
+            } else {
+                // Inserir novo item
+                $stmt_insert = $conn->prepare("
+                    INSERT INTO carrinho (id_cliente, id_produto, quantidade, tipo_produto, data_adicao) 
+                    VALUES (?, ?, ?, ?, NOW())
+                ");
+                $stmt_insert->bind_param("iiis", $id_cliente, $id_produto, $quantidade, $tipo_produto);
+
+                if ($stmt_insert->execute()) {
+                    $_SESSION['sucesso'] = "✅ Produto adicionado ao carrinho!";
+                } else {
+                    $_SESSION['erro'] = "❌ Erro ao adicionar ao carrinho";
+                }
+                $stmt_insert->close();
+            }
         }
+    } catch (Exception $e) {
+        $_SESSION['erro'] = "❌ " . $e->getMessage();
+        log_erro_integridade($conn, 'erro_adicionar_carrinho', $e->getMessage(), [
+            'id_cliente' => $id_cliente,
+            'id_produto' => $id_produto ?? 0
+        ]);
     }
-    
+
     // Redirecionar de volta
     $redirect = $_POST['redirect'] ?? 'index.php';
     header("Location: " . $redirect);
@@ -85,19 +104,20 @@ if (isset($_POST['adicionar_carrinho'])) {
 // ===== REMOVER DO CARRINHO =====
 if (isset($_GET['remover'])) {
     $id_item = intval($_GET['remover']);
-    
+
     $stmt_remove = $conn->prepare("
         DELETE FROM carrinho 
         WHERE id = ? AND id_cliente = ?
     ");
     $stmt_remove->bind_param("ii", $id_item, $id_cliente);
-    
+
     if ($stmt_remove->execute()) {
-        $_SESSION['sucesso'] = "Item removido do carrinho!";
+        $_SESSION['sucesso'] = "✅ Item removido do carrinho!";
     } else {
-        $_SESSION['erro'] = "Erro ao remover item: " . $conn->error;
+        $_SESSION['erro'] = "❌ Erro ao remover item";
     }
-    
+    $stmt_remove->close();
+
     header("Location: carrinho.php");
     exit;
 }
@@ -106,32 +126,36 @@ if (isset($_GET['remover'])) {
 if (isset($_POST['atualizar_quantidade'])) {
     $id_item = intval($_POST['id_item']);
     $nova_quantidade = intval($_POST['quantidade']);
-    
+
     if ($nova_quantidade < 1) {
-        // Se quantidade for 0 ou menor, remover o item
+        // Remover o item
         $stmt_remove = $conn->prepare("
             DELETE FROM carrinho 
             WHERE id = ? AND id_cliente = ?
         ");
         $stmt_remove->bind_param("ii", $id_item, $id_cliente);
         $stmt_remove->execute();
-        $_SESSION['sucesso'] = "Item removido do carrinho!";
+        $stmt_remove->close();
+        $_SESSION['sucesso'] = "✅ Item removido do carrinho!";
     } else {
         // Atualizar quantidade
+        $nova_quantidade = min($nova_quantidade, 99); // Máximo 99
+
         $stmt_update = $conn->prepare("
             UPDATE carrinho 
             SET quantidade = ? 
             WHERE id = ? AND id_cliente = ?
         ");
         $stmt_update->bind_param("iii", $nova_quantidade, $id_item, $id_cliente);
-        
+
         if ($stmt_update->execute()) {
-            $_SESSION['sucesso'] = "Quantidade atualizada!";
+            $_SESSION['sucesso'] = "✅ Quantidade atualizada!";
         } else {
-            $_SESSION['erro'] = "Erro ao atualizar quantidade: " . $conn->error;
+            $_SESSION['erro'] = "❌ Erro ao atualizar quantidade";
         }
+        $stmt_update->close();
     }
-    
+
     header("Location: carrinho.php");
     exit;
 }
@@ -140,31 +164,53 @@ if (isset($_POST['atualizar_quantidade'])) {
 if (isset($_GET['limpar'])) {
     $stmt_limpar = $conn->prepare("DELETE FROM carrinho WHERE id_cliente = ?");
     $stmt_limpar->bind_param("i", $id_cliente);
-    
+
     if ($stmt_limpar->execute()) {
-        $_SESSION['sucesso'] = "Carrinho esvaziado!";
+        $_SESSION['sucesso'] = "✅ Carrinho esvaziado!";
     } else {
-        $_SESSION['erro'] = "Erro ao limpar carrinho: " . $conn->error;
+        $_SESSION['erro'] = "❌ Erro ao limpar carrinho";
     }
-    
+    $stmt_limpar->close();
+
     header("Location: carrinho.php");
     exit;
 }
 
-// ===== BUSCAR ITENS DO CARRINHO =====
+// ===== BUSCAR ITENS DO CARRINHO - APENAS PRODUTOS VÁLIDOS =====
 $sql_carrinho = "
     SELECT 
         c.id,
         c.id_produto,
         c.quantidade,
-        p.nome,
-        p.descricao,
-        p.preco,
-        p.imagem,
-        (c.quantidade * p.preco) as subtotal
+        c.tipo_produto,
+        CASE 
+            WHEN c.tipo_produto = 'normal' THEN p.nome
+            WHEN c.tipo_produto = 'especial' THEN pe.nome
+        END as nome,
+        CASE 
+            WHEN c.tipo_produto = 'normal' THEN p.descricao
+            WHEN c.tipo_produto = 'especial' THEN pe.descricao
+        END as descricao,
+        CASE 
+            WHEN c.tipo_produto = 'normal' THEN p.preco
+            WHEN c.tipo_produto = 'especial' THEN pe.preco
+        END as preco,
+        CASE 
+            WHEN c.tipo_produto = 'normal' THEN p.imagem
+            WHEN c.tipo_produto = 'especial' THEN pe.imagem
+        END as imagem,
+        (c.quantidade * CASE 
+            WHEN c.tipo_produto = 'normal' THEN p.preco
+            WHEN c.tipo_produto = 'especial' THEN pe.preco
+        END) as subtotal
     FROM carrinho c
-    INNER JOIN produtos p ON c.id_produto = p.id
+    LEFT JOIN produtos p ON c.id_produto = p.id AND c.tipo_produto = 'normal' AND p.disponivel = 1
+    LEFT JOIN produtos_especiais pe ON c.id_produto = pe.id AND c.tipo_produto = 'especial'
     WHERE c.id_cliente = ?
+        AND (
+            (c.tipo_produto = 'normal' AND p.id IS NOT NULL) OR
+            (c.tipo_produto = 'especial' AND pe.id IS NOT NULL)
+        )
     ORDER BY c.data_adicao DESC
 ";
 
@@ -172,6 +218,7 @@ $stmt = $conn->prepare($sql_carrinho);
 $stmt->bind_param("i", $id_cliente);
 $stmt->execute();
 $itens = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 // Calcular total
 $total = 0;
@@ -182,6 +229,7 @@ foreach ($itens as $item) {
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -210,7 +258,7 @@ foreach ($itens as $item) {
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
@@ -280,6 +328,11 @@ foreach ($itens as $item) {
             color: #721c24;
         }
 
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
         .carrinho-grid {
             display: grid;
             gap: 20px;
@@ -290,7 +343,7 @@ foreach ($itens as $item) {
             background: white;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             display: grid;
             grid-template-columns: 100px 1fr auto;
             gap: 20px;
@@ -363,7 +416,7 @@ foreach ($itens as $item) {
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .resumo h2 {
@@ -412,6 +465,7 @@ foreach ($itens as $item) {
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -424,14 +478,24 @@ foreach ($itens as $item) {
         <?php if (isset($_SESSION['sucesso'])): ?>
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
-                <?= $_SESSION['sucesso']; unset($_SESSION['sucesso']); ?>
+                <?= $_SESSION['sucesso'];
+                unset($_SESSION['sucesso']); ?>
             </div>
         <?php endif; ?>
 
         <?php if (isset($_SESSION['erro'])): ?>
             <div class="alert alert-error">
                 <i class="fas fa-exclamation-circle"></i>
-                <?= $_SESSION['erro']; unset($_SESSION['erro']); ?>
+                <?= $_SESSION['erro'];
+                unset($_SESSION['erro']); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['aviso'])): ?>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?= $_SESSION['aviso'];
+                unset($_SESSION['aviso']); ?>
             </div>
         <?php endif; ?>
 
@@ -450,7 +514,7 @@ foreach ($itens as $item) {
                     <div class="item-card">
                         <div>
                             <?php if ($item['imagem'] && file_exists($item['imagem'])): ?>
-                                <img src="<?= $item['imagem'] ?>" alt="<?= htmlspecialchars($item['nome']) ?>" class="item-imagem">
+                                <img src="<?= $item['imagem'] ?>" alt="<?= sanitizar_texto($item['nome']) ?>" class="item-imagem">
                             <?php else: ?>
                                 <div class="item-imagem" style="display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-hamburger" style="font-size: 32px; color: #ccc;"></i>
@@ -459,10 +523,10 @@ foreach ($itens as $item) {
                         </div>
 
                         <div class="item-info">
-                            <h3><?= htmlspecialchars($item['nome']) ?></h3>
-                            <p><?= htmlspecialchars($item['descricao']) ?></p>
+                            <h3><?= sanitizar_texto($item['nome']) ?></h3>
+                            <p><?= sanitizar_texto($item['descricao'] ?? '') ?></p>
                             <div class="item-preco">
-                                R$ <?= number_format($item['preco'], 2, ',', '.') ?> x <?= $item['quantidade'] ?> = 
+                                R$ <?= number_format($item['preco'], 2, ',', '.') ?> x <?= $item['quantidade'] ?> =
                                 R$ <?= number_format($item['subtotal'], 2, ',', '.') ?>
                             </div>
                         </div>
@@ -471,20 +535,15 @@ foreach ($itens as $item) {
                             <form method="POST" class="quantidade-control">
                                 <input type="hidden" name="id_item" value="<?= $item['id'] ?>">
                                 <button type="button" onclick="diminuir(<?= $item['id'] ?>)">-</button>
-                                <input type="number" 
-                                       id="qtd_<?= $item['id'] ?>" 
-                                       name="quantidade" 
-                                       value="<?= $item['quantidade'] ?>" 
-                                       min="1" 
-                                       readonly>
+                                <input type="number" id="qtd_<?= $item['id'] ?>" name="quantidade"
+                                    value="<?= $item['quantidade'] ?>" min="1" max="99" readonly>
                                 <button type="button" onclick="aumentar(<?= $item['id'] ?>)">+</button>
-                                <button type="submit" name="atualizar_quantidade" style="display: none;" id="btn_<?= $item['id'] ?>">Atualizar</button>
+                                <button type="submit" name="atualizar_quantidade" style="display: none;"
+                                    id="btn_<?= $item['id'] ?>">Atualizar</button>
                             </form>
 
-                            <a href="?remover=<?= $item['id'] ?>" 
-                               class="btn btn-danger" 
-                               onclick="return confirm('Remover este item do carrinho?')" 
-                               style="font-size: 12px;">
+                            <a href="?remover=<?= $item['id'] ?>" class="btn btn-danger"
+                                onclick="return confirm('Remover este item do carrinho?')" style="font-size: 12px;">
                                 <i class="fas fa-trash"></i> Remover
                             </a>
                         </div>
@@ -494,7 +553,7 @@ foreach ($itens as $item) {
 
             <div class="resumo">
                 <h2>Resumo do Pedido</h2>
-                
+
                 <div class="resumo-linha">
                     <span>Subtotal:</span>
                     <span>R$ <?= number_format($total, 2, ',', '.') ?></span>
@@ -505,14 +564,13 @@ foreach ($itens as $item) {
                     <span>R$ <?= number_format($total, 2, ',', '.') ?></span>
                 </div>
 
-                <a href="finalizar_carrinho.php" class="btn btn-success" style="width: 100%; justify-content: center; font-size: 18px; padding: 18px;">
+                <a href="finalizar_carrinho.php" class="btn btn-success"
+                    style="width: 100%; justify-content: center; font-size: 18px; padding: 18px;">
                     <i class="fas fa-check-circle"></i> Finalizar Pedido
                 </a>
 
-                <a href="?limpar=1" 
-                   class="btn btn-danger" 
-                   onclick="return confirm('Limpar todo o carrinho?')" 
-                   style="width: 100%; justify-content: center; margin-top: 10px;">
+                <a href="?limpar=1" class="btn btn-danger" onclick="return confirm('Limpar todo o carrinho?')"
+                    style="width: 100%; justify-content: center; margin-top: 10px;">
                     <i class="fas fa-trash"></i> Limpar Carrinho
                 </a>
             </div>
@@ -522,8 +580,10 @@ foreach ($itens as $item) {
     <script>
         function aumentar(id) {
             const input = document.getElementById('qtd_' + id);
-            input.value = parseInt(input.value) + 1;
-            document.getElementById('btn_' + id).click();
+            if (parseInt(input.value) < 99) {
+                input.value = parseInt(input.value) + 1;
+                document.getElementById('btn_' + id).click();
+            }
         }
 
         function diminuir(id) {
@@ -535,4 +595,5 @@ foreach ($itens as $item) {
         }
     </script>
 </body>
+
 </html>
